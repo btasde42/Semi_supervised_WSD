@@ -3,10 +3,10 @@ import numpy as np
 from math import *
 
 class Exemple:
-	def __init__(self, example_number, gold_class):
+	def __init__(self, example_number, gold_class,index):
 		self.vector=Ovector()
 		self.classe_gold=gold_class #prise du fichier .gold
-		self.indice=example_number #prise du fichier .tok_ids
+		self.indice=example_number #prise du fichier le no° de phrase
 		self.example_matrix=np.empty((0,3), int) #pas encore bien definie
 	
 	def add_to_matrix(self,indice,vector,example_matrix):
@@ -19,6 +19,7 @@ class Ovector:
 		self.methode=methode #methode de fusion des vecteurs
 
 	def fusion_traits(self): #comment on va fusionner les traits pour créer un seul vecteur par exemple
+		
 		if self.methode == 'somme' :
 			for i in self.traits:
 				vector_traits=np.array(i)
@@ -54,6 +55,9 @@ class KMeans:
 		self.distance_formula=distance_formula
 		self.examples=exemples #pas encore bien etablie
 
+	def stock_clusters():
+		pass
+
 	def create_empty_clusters(self):
 		pass
 
@@ -62,6 +66,7 @@ class KMeans:
 	
 	def retun_final_clusters(self):
 		pass
+
 class Hierarchy:
 
 	def __init__(self,exemples,contraints,clustering_type):
@@ -73,6 +78,10 @@ class Hierarchy:
 		if self.clustering_type == 'descanding': #si la methode est descanding, on commence par un seul grande cluster
 			self.nbr_cluster=1
 
+	def stock_clusters():
+		#liste ou à penser
+		pass
+	
 	def update_nbr_clusters(self,n):
 		"""Remettre à jour le nombre se clusters """
 		self.nbr_cluster=n
