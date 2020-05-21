@@ -6,20 +6,8 @@ import torch.optim as optim
 
 torch.manual_seed(1)
 
-def create_ngrams(texte,CONTEXT_SIZE):
-	trigrams = [texte[i:i+(CONTEXT_SIZE*2)+1] for i in range(len(texte)-CONTEXT_SIZE+2)]
-	for i in trigrams:
-		if len(i)<(CONTEXT_SIZE*2)+1:
-			if i[len(i)-1] ==  '.':
-				for j in range(((CONTEXT_SIZE*2)+1)-len(i)):
-					i.append("EOS")
-			else:
-				for j in range(((CONTEXT_SIZE*2)+1)-len(i)):
-					i[:0]=["BOS"]
-
-	return trigrams 
-
 def create_ngram_ids(lines_phrase,verb_index,tok_ids,n):
+	
 	nb_nul_debut = 0
 	nb_nul_fin = 0
 	if verb_index-1-n < 0:
@@ -31,13 +19,13 @@ def create_ngram_ids(lines_phrase,verb_index,tok_ids,n):
 	ngram = ["BOS" for k in range(nb_nul_debut)]
 	ngram.extend([l.split('\t')[2] for l in lines_phrase[verb_index-1-n+nb_nul_debut:verb_index+n-nb_nul_fin] if l != lines_phrase[verb_index-1]])
 	ngram.extend(["EOS" for k in range(nb_nul_fin)])
-	return ngram
 
+	return ngram
 class NGramLanguageModeler(nn.Module):
 	def __init__(self, vocab_size, embedding_dim, context_size):
 		super(NGramLanguageModeler, self).__init__()
 		self.embeddings = nn.Embedding(vocab_size, embedding_dim)
-		self.linear1 = nn.Linear(context_size * embedding_dim, 128)
+		self.linear1 = nn.Linear(context_size*2 * embedding_dim, 128)
 		self.linear2 = nn.Linear(128, vocab_size)
 
 	def forward(self, inputs):
@@ -54,6 +42,7 @@ def calcul_wordembeds(ngrams,verbe,vocab,n_epoch, EMBEDDING_DIM,CONTEXT_SIZE):
 	print(word_to_ix)
 	losses = []
 	loss_function = nn.NLLLoss()
+	print(len(vocab))
 	model = NGramLanguageModeler(len(vocab), EMBEDDING_DIM, CONTEXT_SIZE)
 	optimizer = optim.SGD(model.parameters(), lr=0.001)
 
