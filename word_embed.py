@@ -1,5 +1,6 @@
 #creation des vecteurs de contexte pour les fichiers conll
 import torch
+import torch.autograd as autograd
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
@@ -39,10 +40,10 @@ def calcul_wordembeds(ngrams,verbe,vocab,n_epoch, EMBEDDING_DIM,CONTEXT_SIZE):
 	vocab.append('EOS')
 	vocab.append('BOS')
 	word_to_ix = {word: i for i, word in enumerate(vocab)}
-	print(word_to_ix)
+
 	losses = []
 	loss_function = nn.NLLLoss()
-	print(len(vocab))
+
 	model = NGramLanguageModeler(len(vocab), EMBEDDING_DIM, CONTEXT_SIZE)
 	optimizer = optim.SGD(model.parameters(), lr=0.001)
 
@@ -52,7 +53,6 @@ def calcul_wordembeds(ngrams,verbe,vocab,n_epoch, EMBEDDING_DIM,CONTEXT_SIZE):
 		for i in ngrams:
 			target=verbe
 			context=i
-			print(context)
 			context_idxs = torch.tensor([word_to_ix[w] for w in context], dtype=torch.long)
 
 			model.zero_grad()
@@ -63,26 +63,13 @@ def calcul_wordembeds(ngrams,verbe,vocab,n_epoch, EMBEDDING_DIM,CONTEXT_SIZE):
 			total_loss += loss.item()
 			
 		losses.append(total_loss)
-	return log_probs
+	return model
+
+def get_vectors_by_keys(model,vocab,key):
+	return model.embeddings(autograd.Variable(torch.LongTensor([vocab[key]])))
 
 
-###TESTS###
-
-test_sentence = """When forty winters shall besiege thy brow,
-And dig deep trenches in thy beauty's field,
-Thy youth's proud livery so gazed on now,
-Will be a totter'd weed of small worth held:
-Then being asked, where all thy beauty lies,
-Where all the treasure of thy lusty days;
-To say, within thine own deep sunken eyes,
-Were an all-eating shame, and thriftless praise.
-How much more praise deserv'd thy beauty's use,
-If thou couldst answer 'This fair child of mine
-Shall sum my count, and make my old excuse,'
-Proving his beauty by succession thine!
-This were to be new made when thou art old,
-And see thy blood warm when thou feel'st it cold .""".split()
-
+###TESTS
 #vocab=set(test_sentence)
 #print(create_ngrams_ids(test_sentence,5,3))
 #print(calcul_wordembeds(test_sentence,vocab,5,7,3))

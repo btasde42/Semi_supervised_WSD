@@ -5,7 +5,7 @@ import numpy as np
 import xlrd
 from sklearn.preprocessing import StandardScaler
 from sklearn import decomposition
-from word_embed import create_ngram_ids, calcul_wordembeds
+from word_embed import create_ngram_ids, calcul_wordembeds, get_vectors_by_keys
 
 def read_conll (conll, gold, tok_ids, n):
 	"""la fonction qui lit le fichier conll et renvoie la matrice dont chaque ligne représente une occurrence du verbe
@@ -24,6 +24,7 @@ def read_conll (conll, gold, tok_ids, n):
 	dist_suj = {}
 	dist_obj = {}
 	vocabulary = Counter() #vocabulaire { mot : nb d'occurrence }
+	list_keys=[]
 	#mot_nul = "nul"
 	ngrams = [] # # liste des ngrams
 	#ngrammes = n mots (le nb de mots de contexte est passé en paramètre) avant et après le verbe ambigu (le verbe lui-même n'y est pas inclu)
@@ -34,14 +35,14 @@ def read_conll (conll, gold, tok_ids, n):
 		verb_index = int(tok_ids[i])
 		lines_phrase = conll[i].split('\n')
 		lemme = lines_phrase[verb_index-1].split('\t')[2] # abattre lemme
+		list_keys.append(lemme+'_'+str(i)) #on met les nombres sur chaque lemme abattre de type abattre_1...abattre_160
 		ngram=create_ngram_ids(lines_phrase,verb_index,tok_ids,n)
-		ngrams.append(ngram) #ajouter ngam de l'occurence dans la liste des ngrams
-
+		ngrams.append(ngram)
 		for j,line in enumerate(lines_phrase):
 			vocabulary[line.split('\t')[2]]+=1
+			vocabulary[lemme+'_'+str(i)]+=1
 			if str(verb_index) in line.split('\t')[6].split('|'):
 				list_indices = line.split('\t')[6].split('|')
-				#print(list_indices)
 				verb_index_dep = line.split('\t')[6].split('|').index(str(verb_index))
 				if line.split("\t")[7].split('|')[verb_index_dep][:3] == "suj":
 					if line.split('\t')[5][-6:] =="anim=I":
@@ -86,9 +87,15 @@ def read_conll (conll, gold, tok_ids, n):
 			vectors[i][5] = dist_suj[i]
 		if i in dist_obj.keys():
 			vectors[i][6] = dist_obj[i]
-	#print(ngrams)
-	ngrams_model=calcul_wordembeds(ngrams,lemme,list(vocabulary.keys()),5,19,n)
-	return vectors, sujet, objet, ngrams_model
+
+	ngrams_model=calcul_wordembeds(ngrams,lemme+'_'+str(i),list(vocabulary.keys()),5,19,n)
+	ngram_vectors= np.empty((0, 19), float)
+	for i in list_keys:
+		vec=get_vectors_by_keys(ngrams_model,vocabulary,i)
+		np_vec=vec.detach().numpy() #transform tensors to np arrays
+		ngram_vectors=np.vstack((ngram_vectors,np_vec))
+	np.savetxt(args.verbe+"_ngram_vectors", ngram_vectors, delimiter = "\t")
+	return vectors, sujet, objet, ngram_vectors
 
 def read_inventaire (inventaire, vectors, sujet, objet):
 	num_senses = 0
@@ -114,14 +121,16 @@ def read_inventaire (inventaire, vectors, sujet, objet):
 	np.savetxt(args.verbe+"_vectors", vectors, delimiter = "\t")
 	return vectors
 
-def reduce_dimension(vectors):
+def reduce_dimension(vectors,ngram_vectors):
 	# Réduction de dimentionalité
 	# noramlisation
 	sc = StandardScaler() 
 	vectors = sc.fit_transform(vectors)
-	pca = decomposition.PCA(n_components = 11) # on laisse 11 traits
+	pca = decomposition.PCA(n_components = 11)
 	vectors = pca.fit_transform(vectors)
 	np.savetxt(args.verbe+"_reduced_vectors", vectors, delimiter = "\t")
+
+
 	# variance exmpliquée : pour voir l'importance de chaque composante
 	# combien d'information est gardé quand on réduit la taille des vecteurs
 	explained_variance = pca.explained_variance_ratio_
@@ -144,7 +153,7 @@ assert args.verbe in verbes
 assert args.verbe in args.conll 
 assert args.verbe in args.gold
 assert args.verbe in args.tok_ids
-print(args.verbe)
+
 
 #os.chdir("./data/" + args.verbe + "/")
 
@@ -155,7 +164,6 @@ with open(args.gold) as file2:
 with open(args.tok_ids) as file3:
 	file_ids = file3.readlines()
 
-vectors, sujet, objet, ngrams_model = read_conll(file_conll, file_gold, file_ids, 3)
-print(ngrams_model)
+vectors, sujet, objet, ngram_vectors = read_conll(file_conll, file_gold, file_ids, 3)
 new_vectors = read_inventaire(args.inventaire, vectors, sujet, objet)
-reduced_vectors = reduce_dimension(new_vectors)
+reduced_vectors = reduce_dimension(new_vectors,ngram_vectors)
