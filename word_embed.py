@@ -68,8 +68,3 @@ def calcul_wordembeds(ngrams,verbe,vocab,n_epoch, EMBEDDING_DIM,CONTEXT_SIZE):
 def get_vectors_by_keys(model,vocab,key):
 	return model.embeddings(autograd.Variable(torch.LongTensor([vocab[key]])))
 
-
-###TESTS
-#vocab=set(test_sentence)
-#print(create_ngrams_ids(test_sentence,5,3))
-#print(calcul_wordembeds(test_sentence,vocab,5,7,3))

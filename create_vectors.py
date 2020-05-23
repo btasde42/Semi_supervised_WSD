@@ -5,9 +5,9 @@ import numpy as np
 import xlrd
 from sklearn.preprocessing import StandardScaler
 from sklearn import decomposition
-from word_embed import create_ngram_ids, calcul_wordembeds, get_vectors_by_keys
+import word_embed
 
-def read_conll (conll, gold, tok_ids, n):
+def read_conll (conll, gold, tok_ids, n, inventaire):
 	"""la fonction qui lit le fichier conll et renvoie la matrice dont chaque ligne représente une occurrence du verbe
 	conll - corpus au format conll
 	gold - fichier avec les classes gold
@@ -95,7 +95,11 @@ def read_conll (conll, gold, tok_ids, n):
 		np_vec=vec.detach().numpy() #transform tensors to np arrays
 		ngram_vectors=np.vstack((ngram_vectors,np_vec))
 	np.savetxt(args.verbe+"_ngram_vectors", ngram_vectors, delimiter = "\t")
-	return vectors, sujet, objet, ngram_vectors
+
+	vectors_syntx=read_inventaire(inventaire, vectors, sujet, objet)
+	np.savetxt(args.verbe+"_vectors_syntx", vectors_syntx, delimiter = "\t")
+
+	return vectors_syntx, ngram_vectors
 
 def read_inventaire (inventaire, vectors, sujet, objet):
 	num_senses = 0
@@ -118,18 +122,22 @@ def read_inventaire (inventaire, vectors, sujet, objet):
 		for sense in senses_obj.keys():
 			if objet[key] in senses_obj[sense]:
 				vectors[key][6+num_senses+1] = 1 
-	np.savetxt(args.verbe+"_vectors", vectors, delimiter = "\t")
 	return vectors
 
-def reduce_dimension(vectors,ngram_vectors):
+def reduce_dimension(vectors,name_type):
+	"""Give a set of vectors and reduce them by PCA
+	Args:
+		vectors: np array
+		name_type: change by the type of vectors
+
+	"""
 	# Réduction de dimentionalité
 	# noramlisation
 	sc = StandardScaler() 
 	vectors = sc.fit_transform(vectors)
 	pca = decomposition.PCA(n_components = 11)
 	vectors = pca.fit_transform(vectors)
-	np.savetxt(args.verbe+"_reduced_vectors", vectors, delimiter = "\t")
-
+	np.savetxt(args.verbe+"_reduced_vectors"+name_type, vectors, delimiter = "\t")
 
 	# variance exmpliquée : pour voir l'importance de chaque composante
 	# combien d'information est gardé quand on réduit la taille des vecteurs
@@ -137,33 +145,3 @@ def reduce_dimension(vectors,ngram_vectors):
 	for elt in explained_variance:
 		print(round(elt,2))
 	return vectors
-
-
-parser = argparse.ArgumentParser()
-parser.add_argument("verbe", help = "abattre, aborder, affecter, comprendre, compter")
-parser.add_argument('conll', help = 'le fichier conll full path')
-parser.add_argument('gold', help = 'le fichier classe gold full path')
-parser.add_argument('tok_ids', help = 'fichier tokens ids full path')
-parser.add_argument("inventaire", help = 'inventaire de sens full path')
-args = parser.parse_args()
-
-verbes = ["abattre", "aborder", "affecter", "comprendre", "compter"]
-# on s'assure que les fichiers correspondent au verbe sélectionné
-assert args.verbe in verbes
-assert args.verbe in args.conll 
-assert args.verbe in args.gold
-assert args.verbe in args.tok_ids
-
-
-#os.chdir("./data/" + args.verbe + "/")
-
-with open(args.conll) as file:
-	file_conll = file.read()
-with open(args.gold) as file2:
-	file_gold = file2.readlines()
-with open(args.tok_ids) as file3:
-	file_ids = file3.readlines()
-
-vectors, sujet, objet, ngram_vectors = read_conll(file_conll, file_gold, file_ids, 3)
-new_vectors = read_inventaire(args.inventaire, vectors, sujet, objet)
-reduced_vectors = reduce_dimension(new_vectors,ngram_vectors)

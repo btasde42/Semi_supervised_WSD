@@ -3,36 +3,33 @@ import numpy as np
 from math import *
 
 class Exemple:
-	def __init__(self, example_number, gold_class,index):
-		self.vector=Ovector()
+	def __init__(self, gold_class, vector):
 		self.classe_gold=gold_class #prise du fichier .gold
-		self.indice=example_number #prise du fichier le no° de phrase
-		self.example_matrix=np.empty((0,3), int) #pas encore bien definie
-	
+		self.vector=Ovector()#prise du fichier le no° de phrase
+		self.example_matrix=np.empty(shape.vectors) #pas encore bien definie
+
 	def add_to_matrix(self,indice,vector,example_matrix):
-		self.example_matrix[:,self.indice]=self.vector #remplacer le vecteur de cet exemple dans matrix
+		
 
 class Ovector:
 	
-	def __init__(self,list_traits,methode):
-		self.list_traits=list_traits
+	def __init__(self,traits_syntaxique,traits_ngram=None,methode):
+		self.traits_syntaxique= traits_syntaxique or np.zeros(traits_ngram.shape) #si initialize son valeur sinon np.zeros
+		self.traits_ngram= traits_ngram or np.zeros(traits_syntaxique.shape)
 		self.methode=methode #methode de fusion des vecteurs
 
 	def fusion_traits(self): #comment on va fusionner les traits pour créer un seul vecteur par exemple
 		
 		if self.methode == 'somme' :
-			for i in self.traits:
-				vector_traits=np.array(i)
+			return np.add(self.traits_syntaxique,self.traits_ngram)
 
 		if self.methode == 'moyenne':
-			for i in self.traits:
-				vector_traits=np.array(i)
+			moyenne_syntx=np.mean(self.traits_syntaxique)
+			moyenne_ngram=np.mean(self.traits_ngram)
+			return np.concatenate(moyenne_syntx,moyenne_ngram) #on cree un vecteur de taille (2,)
 
 		if self.methode == 'concetanation' :
-			for i in self.traits:
-				vector_traits=np.concetenate(vector_traits,np.array(i))
-
-		return vector_traits
+			return np.concatenate(self.traits_syntaxique,self.traits_ngram)
 
 class Cluster:
 	""" Le class de l'objet cluster """
