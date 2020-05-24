@@ -96,10 +96,10 @@ def read_conll (conll, gold, tok_ids, n, inventaire):
 		ngram_vectors=np.vstack((ngram_vectors,np_vec))
 	np.savetxt(args.verbe+"_ngram_vectors", ngram_vectors, delimiter = "\t")
 
-	vectors_syntx=read_inventaire(inventaire, vectors, sujet, objet)
+	vectors_syntx,num_senses=read_inventaire(inventaire, vectors, sujet, objet)
 	np.savetxt(args.verbe+"_vectors_syntx", vectors_syntx, delimiter = "\t")
 
-	return vectors_syntx, ngram_vectors
+	return vectors_syntx,num_senses, ngram_vectors
 
 def read_inventaire (inventaire, vectors, sujet, objet):
 	num_senses = 0
@@ -122,7 +122,7 @@ def read_inventaire (inventaire, vectors, sujet, objet):
 		for sense in senses_obj.keys():
 			if objet[key] in senses_obj[sense]:
 				vectors[key][6+num_senses+1] = 1 
-	return vectors
+	return vectors,num_senses
 
 def reduce_dimension(vectors,name_type):
 	"""Give a set of vectors and reduce them by PCA

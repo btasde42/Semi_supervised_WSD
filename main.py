@@ -11,8 +11,10 @@ parser.add_argument('gold', help = 'le fichier classe gold full path')
 parser.add_argument('tok_ids', help = 'fichier tokens ids full path')
 parser.add_argument("inventaire", help = 'inventaire de sens full path')
 parser.add_argument("reduced",help='Y ou N selon si on veut reduire les vecteurs')
-parser.add_argument("traits",nargs='+',help="List des traits qu'on veut utiliser. [Syntx,ngram]")
+parser.add_argument("traits",nargs='+',help="List des traits qu'on veut utiliser. [syntx,ngram]")
 parser.add_argument("--n",help='la taille de contexte pour les ngrams. Optionelle.')
+parser.add_argument("--fusion_method",help="La methode de fusion pour differents types des vecteurs de traits s'il y en a plusieurs")
+
 
 args = parser.parse_args()
 
@@ -33,34 +35,30 @@ with open(args.gold) as file2:
 with open(args.tok_ids) as file3:
 	file_ids = file3.readlines()
 
-vectors_ngram,vectors_syntx=read_conll(file_conll, file_gold, args.inventaire, file_ids, args.n)
-
-if reduced.lower=='y':
-	vectors_ngram=reduce_dimension(ngram_vectors,'ngram')
-	vectors_syntx=reduce_dimension(ngram_vectors,'ngram')
+vectors_ngram,num_senses,vectors_syntx=read_conll(file_conll, file_gold, args.inventaire, file_ids, args.n)
 
 
-Examples=Exemple(args.gold,ngram_vectors,syntax_vectors)
+if len(traits)<2:
+	if traits[0].lower() == 'syntx':
+		if reduced.lower=='y':
+			vectors_syntx=reduce_dimension(vectors_syntx,'ngram')
+
+	else:
+		if reduced.lower=='y':
+			vectors_ngram=reduce_dimension(v)
+else:
+	if reduced.lower=='y':
+		vectors_ngram=reduce_dimension(ngram_vectors,'ngram')
+		vectors_syntx=reduce_dimension(vectors_syntx,'ngram')
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("vecteurs", help = "fichier vecteurs")
-args = parser.parse_args()
-with open(args.vecteurs) as file:
-	file_vecteurs = file.readlines()
-vectors = []
-for line in file_vecteurs:
-	vector = [float(elt) for elt in line.split('\t')]
-	vectors.append(vector)
-vectors = np.array(vectors)
-#print(vectors[:3])
-np.random.shuffle(vectors)
-#print(vectors[:3])
 
-# comment savoir le nimbre de sens ?
-#nn_senses = ?
 
-classification = structure_wsd_s.KMeans(vectors, 6, None, "cosine") # 6 clusters pour abattre; à remplacer ensuite par le nombre de sens
+Examples=Exemple(args.gold,vector)
+
+
+
+classification = structure_wsd_s.KMeans(vectors, num_senses, None, "cosine") # 6 clusters pour abattre; à remplacer ensuite par le nombre de sens
 print(len(classification.examples))
 clusters = classification.create_empty_clusters()
 for i,cluster in clusters.items():
