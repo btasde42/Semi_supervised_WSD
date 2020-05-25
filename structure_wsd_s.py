@@ -36,17 +36,28 @@ class Ovector:
 
 class Cluster:
 	""" Le class de l'objet cluster """
-	def __init__(self,id_cluster,examples, center):
+	def __init__(self,id_cluster,examples):
 		"""Args:
-			id: le id de cluster sois int sois str
+			id: le id de cluster sois int sois str -> id correspond au id du sens
 			examples: les exemples appertenant à cluster
 		"""
 		self.id=id_cluster
-		self.examples=examples  #les exemples associées à cette cluster de sens, type:matrix
-		self.center = center # l'exemple centre
+		#self.examples=examples  #les exemples associées à cette cluster de sens, type:matrix
+		self.examples = []
+		self.examples.append(examples)
+		self.center = np.mean(self.examples, axis = 0)
+	
 	def add_example_to_cluster(self,example):
-		self.examples = np.append(self.examples, example)
-
+		#self.examples = np.append(self.examples, example)
+		self.examples.append(example)
+		# on fait la màj du centre -> c'est la moyenne des exemples
+		#self.center = np.mean(self.examples, axis = 0)
+	
+	def recalculate_center(self):
+		self.center = np.mean(self.examples, axis=0)
+	
+	def delete_examples(self):
+		self.examples = []
 
 class KMeans:
 
@@ -60,11 +71,17 @@ class KMeans:
 		""" on initialis les k cluster avec le centre et un exemple
 		"""
 		# avant d'appliquer cette méthode il faut faire shuffle des exemples
-		# quand on ajoute un exemple du cluster, on supprimer cet exo de l'ensemble des exemples
 		for i in range(self.k):
-			self.clusters[i] = Cluster(i, self.examples[i], self.examples[i])
-			self.examples = np.delete(self.examples, i, axis=0)
+			self.clusters[i] = Cluster(i, self.examples[i]) #, self.examples[i])
+			#self.examples = np.delete(self.examples, i, axis=0)
 		return self.clusters
+
+	def delete_example(self, example): # PAS BESOIN 
+		"""on supprime l'exemple passé en paramètre de l'ensemble des exemples non-classés
+		peut être utilisé après l'ajout de cet exemple dans un des clusters
+		"""
+		id_example = np.where(self.examples == example)
+		self.examples = np.delete(self.examples, id_example, axis=0)
 
 	def distance_matrix(self, distance_formula):
 		"""distance_formula : string, ex cosine, euclidean, cityblock (for manhattan distance)
