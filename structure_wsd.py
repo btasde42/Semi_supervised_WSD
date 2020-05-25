@@ -2,34 +2,49 @@ import sys
 import numpy as np
 from math import *
 
-class Exemple:
-	def __init__(self, gold_class, vector):
-		self.classe_gold=gold_class #prise du fichier .gold
-		self.vector=Ovector()#prise du fichier le no° de phrase
-		self.example_matrix=np.empty(shape.vectors) #pas encore bien definie
+class Example:
+	def __init__(self):
+		self.espace_vec=[]
 
-	def add_to_matrix(self,indice,vector,example_matrix):
-		
+	def set_vector_to_matrix(self,ovec):
+		self.espace_vec.append(ovec)
+
+	def get_espace_vec(self):
+		return self.espace_vec
 
 class Ovector:
-	
-	def __init__(self,traits_syntaxique,traits_ngram=None,methode):
-		self.traits_syntaxique= traits_syntaxique or np.zeros(traits_ngram.shape) #si initialize son valeur sinon np.zeros
-		self.traits_ngram= traits_ngram or np.zeros(traits_syntaxique.shape)
-		self.methode=methode #methode de fusion des vecteurs
+	def __init__(self,index,gold,methode=None,traits_syntaxique=None,traits_ngram=None):
+		self.traits_syntaxique=traits_syntaxique if traits_syntaxique is not None else np.zeros(traits_ngram.shape)#si initialize son valeur sinon np.zeros
+		self.traits_ngram= traits_ngram if traits_ngram is not None else np.zeros(traits_syntaxique.shape)
+		self.methode=methode if methode is not None else None #methode de fusion des vecteurs
+		self.index=index
+		self.gold=gold
+		self.vector=[[]]
 
 	def fusion_traits(self): #comment on va fusionner les traits pour créer un seul vecteur par exemple
 		
-		if self.methode == 'somme' :
-			return np.add(self.traits_syntaxique,self.traits_ngram)
+		if self.methode.lower() == 'somme' :
+			self.vector=np.add(self.traits_syntaxique,self.traits_ngram)
 
-		if self.methode == 'moyenne':
+		if self.methode.lower() == 'moyenne':
 			moyenne_syntx=np.mean(self.traits_syntaxique)
 			moyenne_ngram=np.mean(self.traits_ngram)
-			return np.concatenate(moyenne_syntx,moyenne_ngram) #on cree un vecteur de taille (2,)
+			self.vector=np.array([moyenne_syntx,moyenne_ngram]) #on cree un vecteur de taille (2,)
 
-		if self.methode == 'concetanation' :
-			return np.concatenate(self.traits_syntaxique,self.traits_ngram)
+		if self.methode.lower() == 'concat' :
+			self.vector=np.concatenate((self.traits_syntaxique,self.traits_ngram),axis=None)
+
+	def set_vector(self,vec):
+		self.vector=vec
+
+	def get_vector(self):
+		return self.vector
+
+	def get_gold_class(self):
+		return self.gold
+
+	def get_index(self):
+		return self.index
 
 class Cluster:
 	""" Le class de l'objet cluster """

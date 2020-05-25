@@ -5,9 +5,8 @@ import numpy as np
 import xlrd
 from sklearn.preprocessing import StandardScaler
 from sklearn import decomposition
-import word_embed
-
-def read_conll (conll, gold, tok_ids, n, inventaire):
+from word_embed import *
+def read_conll(conll, gold, tok_ids, n, inventaire):
 	"""la fonction qui lit le fichier conll et renvoie la matrice dont chaque ligne représente une occurrence du verbe
 	conll - corpus au format conll
 	gold - fichier avec les classes gold
@@ -94,23 +93,23 @@ def read_conll (conll, gold, tok_ids, n, inventaire):
 		vec=get_vectors_by_keys(ngrams_model,vocabulary,i)
 		np_vec=vec.detach().numpy() #transform tensors to np arrays
 		ngram_vectors=np.vstack((ngram_vectors,np_vec))
-	np.savetxt(args.verbe+"_ngram_vectors", ngram_vectors, delimiter = "\t")
+	np.savetxt(lemme+"_ngram_vectors", ngram_vectors, delimiter = "\t")
 
-	vectors_syntx,num_senses=read_inventaire(inventaire, vectors, sujet, objet)
-	np.savetxt(args.verbe+"_vectors_syntx", vectors_syntx, delimiter = "\t")
+	vectors_syntx,num_senses=read_inventaire(inventaire, vectors, sujet, objet,lemme)
+	np.savetxt(lemme+"_vectors_syntx", vectors_syntx, delimiter = "\t")
 
 	return vectors_syntx,num_senses, ngram_vectors
 
-def read_inventaire (inventaire, vectors, sujet, objet):
+def read_inventaire (inventaire, vectors, sujet, objet,lemme):
 	num_senses = 0
-	wb = xlrd.open_workbook(args.inventaire)
+	wb = xlrd.open_workbook(inventaire)
 	sheet = wb.sheet_by_index(0)
 	sheet.cell_value(0, 0)
 	senses_suj = {}
 	senses_obj = {}
 	last_index = 0
 	for i in range(sheet.nrows) :
-		if sheet.row_values(i)[0] == args.verbe:
+		if sheet.row_values(i)[0] == lemme:
 			senses_suj[num_senses] = sheet.row_values(i)[4].split('/')
 			senses_obj[num_senses] = sheet.row_values(i)[7].split('/')
 			num_senses+=1
@@ -124,7 +123,7 @@ def read_inventaire (inventaire, vectors, sujet, objet):
 				vectors[key][6+num_senses+1] = 1 
 	return vectors,num_senses
 
-def reduce_dimension(vectors,name_type):
+def reduce_dimension(vectors,name_type,verbe):
 	"""Give a set of vectors and reduce them by PCA
 	Args:
 		vectors: np array
@@ -137,7 +136,7 @@ def reduce_dimension(vectors,name_type):
 	vectors = sc.fit_transform(vectors)
 	pca = decomposition.PCA(n_components = 11)
 	vectors = pca.fit_transform(vectors)
-	np.savetxt(args.verbe+"_reduced_vectors"+name_type, vectors, delimiter = "\t")
+	np.savetxt(verbe+"_reduced_vectors"+name_type, vectors, delimiter = "\t")
 
 	# variance exmpliquée : pour voir l'importance de chaque composante
 	# combien d'information est gardé quand on réduit la taille des vecteurs
@@ -145,3 +144,17 @@ def reduce_dimension(vectors,name_type):
 	for elt in explained_variance:
 		print(round(elt,2))
 	return vectors
+
+def fusion_traits(traits_syntaxique,traits_ngram,method): #comment on va fusionner les traits pour créer un seul vecteur par exemple
+		
+		if method.lower() == 'somme' :
+			return np.add(traits_syntaxique,traits_ngram)
+
+		if method.lower() == 'moyenne':
+			moyenne_syntx=np.mean(traits_syntaxique)
+			moyenne_ngram=np.mean(traits_ngram)
+			return np.array([moyenne_syntx,moyenne_ngram]) #on cree un vecteur de taille (2,)
+
+		if method.lower() == 'concetanation' :
+			return np.concatenate(traits_syntaxique,traits_ngram)
+
