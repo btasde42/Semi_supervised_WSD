@@ -14,6 +14,7 @@ parser.add_argument("--r",help='Y ou N selon si on veut reduire les vecteurs')
 parser.add_argument("--traits",nargs='+',help="List des traits qu'on veut utiliser. [syntx,ngram]")
 parser.add_argument("--n",type=int, help='la taille de contexte pour les ngrams. Optionelle.')
 parser.add_argument("--fusion_method",help="La methode de fusion pour differents types des vecteurs de traits s'il y en a plusieurs")
+parser.add_argument("--dim",help="La taille de dimention reduit pour les vecteurs de verbe")
 
 
 args = parser.parse_args()
@@ -26,7 +27,6 @@ assert args.verbe in args.gold
 assert args.verbe in args.tok_ids
 
 
-#os.chdir("./data/" + args.verbe + "/")
 
 with open(args.conll) as file:
 	file_conll = file.read()
@@ -42,56 +42,59 @@ vectors_ngram,num_senses,vectors_syntx=read_conll(file_conll, file_gold, file_id
 if len(args.traits)<2: #s'il y a pas les deux traits démandé mais qu'un seul
 	if args.traits[0].lower() == 'syntx':
 		if args.r.lower()=='y': #si la reduction est demandé
-			vectors_syntx=reduce_dimension(vectors_syntx,'syntx',args.verbe)
+			vectors_syntx=reduce_dimension(vectors_syntx,'syntx',args.verbe,arg.dim)
 		else: 
 			vectors_syntx=vectors_syntx
-		Examples=Example()
+		examples=Examples()
 		for i in range(len(vectors_syntx)):
 			gold=file_gold[i]
-			Vector=Ovector(i,gold,None,vectors_syntx[i],None)
-			Vector.set_vector(vectors_syntx[i])
-			Examples.set_vector_to_matrix(Vector)
+			vector=Ovector(i,gold,None,vectors_syntx[i],None)
+			vector.set_vector(vectors_syntx[i])
+			examples.set_vector_to_matrix(vector)
 			
 
 	else: #si ngram
 		if args.r.lower()=='y':
-			vectors_ngram=reduce_dimension(vectors_ngram,'ngram',args.verbe)
+			vectors_ngram=reduce_dimension(vectors_ngram,'ngram',args.verbe,arg.dim)
 		else:
 			vectors_ngram=vectors_ngram
-		Examples=Example()
+		examples=Examples()
 		for i in range(len(vectors_ngram)):
 			vector=vectors_ngram[i]
 			gold=file_gold[i]
-			Vector=Ovector(i,gold,None,None,vectors_ngram[i])
-			Vector.set_vector(vectors_ngram[i])
-			Examples.set_vector_to_matrix(Vector)
+			vector=Ovector(i,gold,None,None,vectors_ngram[i])
+			vector.set_vector(vectors_ngram[i])
+			examples.set_vector_to_matrix(vector)
 			
 
-else:
-	if args.r.lower()=='y':
-		vectors_ngram=reduce_dimension(vectors_ngram,'ngram',args.verbe)
-		vectors_syntx=reduce_dimension(vectors_syntx,'ngram',args.verbe)
-		Examples=Example() 
+else: #si on demande tous les deux traits ngram et syntx
+	if args.r.lower()=='y': #si la reduction est demandé
+		vectors_ngram=reduce_dimension(vectors_ngram,'ngram',args.verbe,arg.dim)
+		vectors_syntx=reduce_dimension(vectors_syntx,'ngram',args.verbe,arg.dim)
+		examples=Examples() 
 		for i in range(len(vectors_ngram)):
 			gold=file_gold[i]
-			Vector=Ovector(i,gold,args.fusion_method,vectors_syntx[i],vectors_ngram[i])
-			Vector.fusion_traits()
-			Examples.set_vector_to_matrix(Vector)
+			vector=Ovector(i,gold,args.fusion_method,vectors_syntx[i],vectors_ngram[i])
+			vector.fusion_traits()
+			examples.set_vector_to_matrix(vector)
 
 	else:
-		Examples=Example()
+		examples=Examples()
 		for i in range(len(vectors_ngram)):
 			gold=file_gold[i]
-			Vector=Ovector(i,gold,args.fusion_method,vectors_syntx[i],vectors_ngram[i])
-			Vector.fusion_traits()
-			Examples.set_vector_to_matrix(Vector)
+			vector=Ovector(i,gold,args.fusion_method,vectors_syntx[i],vectors_ngram[i])
+			vector.fusion_traits()
+			examples.set_vector_to_matrix(vector)
 
-matrix=Examples.get_espace_vec()
+
+espace_vectorielle=examples.get_espace_vec()
+"""
 for i in matrix:
 	print(i.get_index())
 	print(i.get_vector())
 	print(i.get_gold_class())
 	print('\t')
+"""
 
 classification = structure_wsd_s.KMeans(vectors, num_senses, None, "cosine") # 6 clusters pour abattre; à remplacer ensuite par le nombre de sens
 print(len(classification.examples))

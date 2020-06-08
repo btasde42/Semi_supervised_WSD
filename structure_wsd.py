@@ -11,7 +11,14 @@ class Example:
 
 	def get_espace_vec(self):
 		return self.espace_vec
-
+	
+	def get_id_from_vector(self,vector):
+		"""
+		Returns the id of given vector in the vector space
+		"""
+		for i in self.espace_vec:
+			if i.get_vector()==vector:
+				return i.get_index()
 class Ovector:
 	def __init__(self,index,gold,methode=None,traits_syntaxique=None,traits_ngram=None):
 		self.traits_syntaxique=traits_syntaxique if traits_syntaxique is not None else np.zeros(traits_ngram.shape)#si initialize son valeur sinon np.zeros

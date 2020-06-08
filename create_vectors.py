@@ -123,7 +123,7 @@ def read_inventaire (inventaire, vectors, sujet, objet,lemme):
 				vectors[key][6+num_senses+1] = 1 
 	return vectors,num_senses
 
-def reduce_dimension(vectors,name_type,verbe):
+def reduce_dimension(vectors,name_type,verbe,dimention):
 	"""Give a set of vectors and reduce them by PCA
 	Args:
 		vectors: np array
@@ -134,7 +134,7 @@ def reduce_dimension(vectors,name_type,verbe):
 	# noramlisation
 	sc = StandardScaler() 
 	vectors = sc.fit_transform(vectors)
-	pca = decomposition.PCA(n_components = 11)
+	pca = decomposition.PCA(n_components = dimention)
 	vectors = pca.fit_transform(vectors)
 	np.savetxt(verbe+"_reduced_vectors"+name_type, vectors, delimiter = "\t")
 
