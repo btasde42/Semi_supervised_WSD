@@ -2,7 +2,7 @@ import sys
 import numpy as np
 from math import *
 
-class Example:
+class Examples:
 	def __init__(self):
 		self.espace_vec=[]
 
@@ -57,85 +57,69 @@ class Cluster:
 	""" Le class de l'objet cluster """
 	def __init__(self,id_cluster,examples):
 		"""Args:
-			id: le id de cluster sois int sois str
+			id: le id de cluster sois int sois str -> id correspond au id du sens
 			examples: les exemples appertenant à cluster
 		"""
 		self.id=id_cluster
-		self.examples=examples #les exemples associées à cette cluster de sens, type:matrix
-
-	def add_exemple_to_cluster(self,example):
-		pass
+		#self.examples=examples  #les exemples associées à cette cluster de sens, type:matrix
+		self.examples = []
+		self.examples.append(examples)
+		self.center = np.mean(self.examples, axis = 0)
+	
+	def add_example_to_cluster(self,example):
+		#self.examples = np.append(self.examples, example)
+		self.examples.append(example)
+		# on fait la màj du centre -> c'est la moyenne des exemples
+		#self.center = np.mean(self.examples, axis = 0)
+	
+	def recalculate_center(self):
+		self.center = np.mean(self.examples, axis=0)
+	
+	def delete_examples(self):
+		self.examples = []
 
 class KMeans:
 
-	def __init__(self, exemples, k,contraints,distance_formula):
+	def __init__(self, examples, k,contraints,distance_formula):
 		self.k=k
 		self.conraints=contraints
 		self.distance_formula=distance_formula
-		self.examples=exemples #pas encore bien etablie
-
-	def stock_clusters():
-		pass
-
+		self.examples=examples #pas encore bien etablie
+		self.clusters = {}
 	def create_empty_clusters(self):
-		pass
+		""" on initialis les k cluster avec le centre et un exemple
+		"""
+		# avant d'appliquer cette méthode il faut faire shuffle des exemples
+		for i in range(self.k):
+			self.clusters[i] = Cluster(i, self.examples[i]) #, self.examples[i])
+			#self.examples = np.delete(self.examples, i, axis=0)
+		return self.clusters
 
-	def distance_matrix(self):
-		pass
+	def delete_example(self, example): # PAS BESOIN 
+		"""on supprime l'exemple passé en paramètre de l'ensemble des exemples non-classés
+		peut être utilisé après l'ajout de cet exemple dans un des clusters
+		"""
+		id_example = np.where(self.examples == example)
+		self.examples = np.delete(self.examples, id_example, axis=0)
+
+	def distance_matrix(self, distance_formula):
+		"""distance_formula : string, ex cosine, euclidean, cityblock (for manhattan distance)
+		"""
+		centers = [self.clusters[i].center for i in range(self.k)]
+		# IL FAUT PRENDRE EN COMPTE LES EXOS QUI NE SONT PAS DANS LES CLUSTERS ! 
+		return scipy.spatial.distance.cdist(centers, self.examples, distance_formula)
 	
 	def retun_final_clusters(self):
-		pass
+		return self.clusters
 
-class Hierarchy:
-
-	def __init__(self,exemples,contraints,clustering_type):
-		self.contraints=contraints
-		self.exemples=exemples
-		self.clustering_type=clustering_type
-		if self.clustering_type == 'ascending': #si la methode est ascending on  a le nombre des exemples comme nombre des clusters
-			self.nbr_cluster=len(self.exemples)
-		if self.clustering_type == 'descanding': #si la methode est descanding, on commence par un seul grande cluster
-			self.nbr_cluster=1
-
-	def stock_clusters():
-		#liste ou à penser
-		pass
-	
-	def update_nbr_clusters(self,n):
-		"""Remettre à jour le nombre se clusters """
-		self.nbr_cluster=n
-
-	def initialize_clusters(self):
-		"""
-		Creer les objets de clusters dans le nombre qu'on a besoin
-		"""
-		pass
-
-	def merge_clusters(self):
-		"""Methode pour fusionner les clusters si le methode est ascending """
-		pass
-
-	def demerge_clusters(self):
-		"""Methode pour defusionner les clusters si le méthode est descending """
-		pass
-
-	def distance_matrix(self):
-		pass
-
-	def retun_final_clusters(self):
-		pass
 
 class WSD:
-	def __init__(self,method,examples):
-		self.method = method
-		self.exampls=examples
+	def __init__(self,clusters):
+		self.clusters=clusters
 	
-	def create_clustering(self,examples,k,contraints,distance_formula):
-		if self.method == "kmeans":
-			return KMeans(self.examples,k,contraints,distance_formula)
-		if self.method=='hierarchy':
-			return Hierarchy(self.examples,contraints,clustering_type)
-
 	def evaluate(self,examples):
+		"""dict_gold={}
+								for c in clusters:
+									for e in c.examples:"""
 		pass
 

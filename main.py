@@ -10,10 +10,11 @@ parser.add_argument('conll', help = 'le fichier conll full path')
 parser.add_argument('gold', help = 'le fichier classe gold full path')
 parser.add_argument('tok_ids', help = 'fichier tokens ids full path')
 parser.add_argument("inventaire", help = 'inventaire de sens full path')
-parser.add_argument("--r",help='Y ou N selon si on veut reduire les vecteurs')
-parser.add_argument("--traits",nargs='+',help="List des traits qu'on veut utiliser. [syntx,ngram]")
-parser.add_argument("--n",type=int, help='la taille de contexte pour les ngrams. Optionelle.')
+parser.add_argument("--r",help='Y ou N selon si on veut reduire les vecteurs, IMPORTANT: #si on applique pas la reduction, fusion_method doit etre moyenne ou concat')
+parser.add_argument("--traits",nargs='+',help="List des traits qu'on veut utiliser. [syntx,linear]")
+parser.add_argument("--n",type=int, help='la taille de contexte pour les linears. Optionelle.')
 parser.add_argument("--fusion_method",help="La methode de fusion pour differents types des vecteurs de traits s'il y en a plusieurs")
+parser.add_argument("--linear_method", help='Concat, somme or moyenne pour fusionner les traits de linear')
 parser.add_argument("--dim",help="La taille de dimention reduit pour les vecteurs de verbe")
 
 
@@ -35,16 +36,19 @@ with open(args.gold) as file2:
 with open(args.tok_ids) as file3:
 	file_ids = file3.readlines()
 
-vectors_ngram,num_senses,vectors_syntx=read_conll(file_conll, file_gold, file_ids, args.n,args.inventaire)
+
+vectors_syntx,num_senses,vectors_linear=read_conll(file_conll, file_gold, file_ids, args.n,args.inventaire,args.linear_method)
 
 
 
-if len(args.traits)<2: #s'il y a pas les deux traits démandé mais qu'un seul
-	if args.traits[0].lower() == 'syntx':
+if len(args.traits)==1: #s'il y a pas les deux traits démandé mais qu'un seul
+	if args.traits[0].lower() =='syntx':
 		if args.r.lower()=='y': #si la reduction est demandé
-			vectors_syntx=reduce_dimension(vectors_syntx,'syntx',args.verbe,arg.dim)
+			np.savetxt(args.verbe+"_vectors_syntx", vectors_syntx, delimiter = "\t")
+			vectors_syntx=reduce_dimension(vectors_syntx,'syntx',args.verbe,int(args.dim))
 		else: 
 			vectors_syntx=vectors_syntx
+			
 		examples=Examples()
 		for i in range(len(vectors_syntx)):
 			gold=file_gold[i]
@@ -53,48 +57,55 @@ if len(args.traits)<2: #s'il y a pas les deux traits démandé mais qu'un seul
 			examples.set_vector_to_matrix(vector)
 			
 
-	else: #si ngram
+	elif args.traits[0].lower() =='linear':
 		if args.r.lower()=='y':
-			vectors_ngram=reduce_dimension(vectors_ngram,'ngram',args.verbe,arg.dim)
-		else:
-			vectors_ngram=vectors_ngram
-		examples=Examples()
-		for i in range(len(vectors_ngram)):
-			vector=vectors_ngram[i]
-			gold=file_gold[i]
-			vector=Ovector(i,gold,None,None,vectors_ngram[i])
-			vector.set_vector(vectors_ngram[i])
-			examples.set_vector_to_matrix(vector)
-			
+			np.savetxt(args.verbe+"_linear_vectors", vectors_linear, delimiter = "\t")
+			vectors_linear=reduce_dimension(vectors_linear,'linear',args.verbe,int(args.dim))
 
-else: #si on demande tous les deux traits ngram et syntx
-	if args.r.lower()=='y': #si la reduction est demandé
-		vectors_ngram=reduce_dimension(vectors_ngram,'ngram',args.verbe,arg.dim)
-		vectors_syntx=reduce_dimension(vectors_syntx,'ngram',args.verbe,arg.dim)
-		examples=Examples() 
-		for i in range(len(vectors_ngram)):
+		else:
+			vectors_linear=vectors_linear
+
+		examples=Examples()
+		for i in range(len(vectors_linear)):
+			vector=vectors_linear[i]
 			gold=file_gold[i]
-			vector=Ovector(i,gold,args.fusion_method,vectors_syntx[i],vectors_ngram[i])
+			vector=Ovector(i,gold,None,None,vectors_linear[i])
+			vector.set_vector(vectors_linear[i])
+			examples.set_vector_to_matrix(vector)
+	else:
+		print("Traits démandée n'existe pas!")		
+
+else: #si on demande tous les deux traits linear et syntx
+	if args.r.lower()=='y': #si la reduction est demandé
+		np.savetxt(args.verbe+"_vectors_syntx", vectors_syntx, delimiter = "\t")
+		np.savetxt(args.verbe+"_linear_vectors", vectors_linear, delimiter = "\t")
+		vectors_linear=reduce_dimension(vectors_linear,'linear',args.verbe,int(args.dim))
+		vectors_syntx=reduce_dimension(vectors_syntx,'syntx',args.verbe,int(args.dim))
+		examples=Examples() 
+		for i in range(len(vectors_linear)):
+			gold=file_gold[i]
+			vector=Ovector(i,gold,args.fusion_method,vectors_syntx[i],vectors_linear[i])
 			vector.fusion_traits()
 			examples.set_vector_to_matrix(vector)
 
 	else:
 		examples=Examples()
-		for i in range(len(vectors_ngram)):
+		for i in range(len(vectors_linear)):
 			gold=file_gold[i]
-			vector=Ovector(i,gold,args.fusion_method,vectors_syntx[i],vectors_ngram[i])
+			vector=Ovector(i,gold,args.fusion_method,vectors_syntx[i],vectors_linear[i])
 			vector.fusion_traits()
 			examples.set_vector_to_matrix(vector)
 
 
 espace_vectorielle=examples.get_espace_vec()
-"""
-for i in matrix:
+
+
+for i in espace_vectorielle:
 	print(i.get_index())
 	print(i.get_vector())
 	print(i.get_gold_class())
 	print('\t')
-"""
+
 
 classification = structure_wsd_s.KMeans(vectors, num_senses, None, "cosine") # 6 clusters pour abattre; à remplacer ensuite par le nombre de sens
 print(len(classification.examples))

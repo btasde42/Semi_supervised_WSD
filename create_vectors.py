@@ -6,7 +6,7 @@ import xlrd
 from sklearn.preprocessing import StandardScaler
 from sklearn import decomposition
 from word_embed import *
-def read_conll(conll, gold, tok_ids, n, inventaire):
+def read_conll(conll, gold, tok_ids, n, inventaire,method=None):
 	"""la fonction qui lit le fichier conll et renvoie la matrice dont chaque ligne représente une occurrence du verbe
 	conll - corpus au format conll
 	gold - fichier avec les classes gold
@@ -22,11 +22,11 @@ def read_conll(conll, gold, tok_ids, n, inventaire):
 	fonction = {} # V, VINF, VPP, VPR
 	dist_suj = {}
 	dist_obj = {}
-	vocabulary = Counter() #vocabulaire { mot : nb d'occurrence }
 	list_keys=[]
 	#mot_nul = "nul"
-	ngrams = [] # # liste des ngrams
-	#ngrammes = n mots (le nb de mots de contexte est passé en paramètre) avant et après le verbe ambigu (le verbe lui-même n'y est pas inclu)
+	dict_mots_vec=get_linear_vectors()
+	linear_vectors = [] # # liste des linears
+	#linearmes = n mots (le nb de mots de contexte est passé en paramètre) avant et après le verbe ambigu (le verbe lui-même n'y est pas inclu)
 	conll = conll.split('\n\n')[:-1]
 	assert len(conll) == len(tok_ids)
 	for i in range(len(tok_ids)):
@@ -35,11 +35,28 @@ def read_conll(conll, gold, tok_ids, n, inventaire):
 		lines_phrase = conll[i].split('\n')
 		lemme = lines_phrase[verb_index-1].split('\t')[2] # abattre lemme
 		list_keys.append(lemme+'_'+str(i)) #on met les nombres sur chaque lemme abattre de type abattre_1...abattre_160
-		ngram=create_ngram_ids(lines_phrase,verb_index,tok_ids,n)
-		ngrams.append(ngram)
+
+		####linear POUR L'EXEMPLE i###
+		linear=create_linear_ids(lines_phrase,verb_index,tok_ids,n) #creer fenetre de n
+		vector_n_i=[]
+		for j in linear:
+			if j.lower() in dict_mots_vec: #si le mot se trouve dans le fichier vecteurs
+				vector_n_i.append(dict_mots_vec[j.lower()])
+			else: #sinon
+				vec_zeros = np.zeros(100, float) # à vérifier la taille des vecteurs
+				vector_n_i.append(vec_zeros)
+		if method != None: #si linear demandée
+			if method.lower() == 'somme':
+				vector_n_i=np.vstack(vector_n_i).sum(axis=0)
+			if method.lower() == 'moyenne':
+				vector_n_i=np.mean(vector_n_i, axis=0)
+			if method.lower() == 'concat':
+				vector_n_i=np.vstack(vector_n_i)
+	
+		linear_vectors.append(vector_n_i)
+		############
 		for j,line in enumerate(lines_phrase):
-			vocabulary[line.split('\t')[2]]+=1
-			vocabulary[lemme+'_'+str(i)]+=1
+
 			if str(verb_index) in line.split('\t')[6].split('|'):
 				list_indices = line.split('\t')[6].split('|')
 				verb_index_dep = line.split('\t')[6].split('|').index(str(verb_index))
@@ -70,7 +87,6 @@ def read_conll(conll, gold, tok_ids, n, inventaire):
 		elif lines_phrase[verb_index-1].split('\t')[4] == "VPR":
 			fonction[i] = 3
 	vectors = np.zeros((len(tok_ids), 19), float) # à vérifier la taille des vecteurs
-	#vecteurs =np.zeros((len(tok_ids), 19), float) # à vérifier la taille des vecteurs
 	for i in range(len(tok_ids)):
 		if i in suj_animé.keys():
 			vectors[i][0] = suj_animé[i]
@@ -86,19 +102,11 @@ def read_conll(conll, gold, tok_ids, n, inventaire):
 			vectors[i][5] = dist_suj[i]
 		if i in dist_obj.keys():
 			vectors[i][6] = dist_obj[i]
-
-	ngrams_model=calcul_wordembeds(ngrams,lemme+'_'+str(i),list(vocabulary.keys()),5,19,n)
-	ngram_vectors= np.empty((0, 19), float)
-	for i in list_keys:
-		vec=get_vectors_by_keys(ngrams_model,vocabulary,i)
-		np_vec=vec.detach().numpy() #transform tensors to np arrays
-		ngram_vectors=np.vstack((ngram_vectors,np_vec))
-	np.savetxt(lemme+"_ngram_vectors", ngram_vectors, delimiter = "\t")
-
+	
 	vectors_syntx,num_senses=read_inventaire(inventaire, vectors, sujet, objet,lemme)
-	np.savetxt(lemme+"_vectors_syntx", vectors_syntx, delimiter = "\t")
+	
 
-	return vectors_syntx,num_senses, ngram_vectors
+	return vectors_syntx,num_senses, linear_vectors
 
 def read_inventaire (inventaire, vectors, sujet, objet,lemme):
 	num_senses = 0
@@ -120,7 +128,7 @@ def read_inventaire (inventaire, vectors, sujet, objet,lemme):
 	for key in objet.keys():
 		for sense in senses_obj.keys():
 			if objet[key] in senses_obj[sense]:
-				vectors[key][6+num_senses+1] = 1 
+				vectors[key][6+sense+1] = 1 
 	return vectors,num_senses
 
 def reduce_dimension(vectors,name_type,verbe,dimention):
@@ -145,16 +153,16 @@ def reduce_dimension(vectors,name_type,verbe,dimention):
 		print(round(elt,2))
 	return vectors
 
-def fusion_traits(traits_syntaxique,traits_ngram,method): #comment on va fusionner les traits pour créer un seul vecteur par exemple
+def fusion_traits(traits_syntaxique,traits_linear,method): #comment on va fusionner les traits pour créer un seul vecteur par exemple
 		
 		if method.lower() == 'somme' :
-			return np.add(traits_syntaxique,traits_ngram)
+			return np.add(traits_syntaxique,traits_linear)
 
 		if method.lower() == 'moyenne':
 			moyenne_syntx=np.mean(traits_syntaxique)
-			moyenne_ngram=np.mean(traits_ngram)
-			return np.array([moyenne_syntx,moyenne_ngram]) #on cree un vecteur de taille (2,)
+			moyenne_linear=np.mean(traits_linear)
+			return np.array([moyenne_syntx,moyenne_linear]) #on cree un vecteur de taille (2,)
 
 		if method.lower() == 'concetanation' :
-			return np.concatenate(traits_syntaxique,traits_ngram)
+			return np.concatenate(traits_syntaxique,traits_linear)
 
