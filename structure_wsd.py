@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 from math import *
-
+from collections import Counter, defaultdict
 class Examples:
 	def __init__(self):
 		self.espace_vec=[]
@@ -117,9 +117,29 @@ class WSD:
 	def __init__(self,clusters):
 		self.clusters=clusters
 	
-	def evaluate(self,examples):
-		"""dict_gold={}
-								for c in clusters:
-									for e in c.examples:"""
-		pass
+	def evaluate(self,clusters):
+		dict_scores=defaultdict(dict)
+		classes=Counter()
+		dict_vraies={}
+		precision=0.0
+		rappel=0.0
+		F_score=0.0
+		
+		for c in clusters:
+			for e in c.examples:
+				classes[e.gold]+=1 #on calcule le nombre de gold pour chaque classes
+
+		for c in clusters:
+			id_cluster=c.id
+			centre_cluster=c.center.gold #le gold de l'exemple de centre
+			vrai=0
+			for e in c.examples:
+				e.gold==centre_cluster:
+					vrai+=1
+			dict_scores[id_cluster]['precision']=vrai/len(c.examples)
+			dict_scores[id_cluster]['rappel']= vrai/classes[centre_cluster]
+			dict_scores[id_cluster]['F']= 2* ((dict_scores[id_cluster]['precision']*dict_scores[id_cluster]['rappel']) / (dict_scores[id_cluster]['precision']+dict_scores[id_cluster]['rappel']))
+
+		return dict_scores
+
 
