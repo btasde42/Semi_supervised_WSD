@@ -1,4 +1,5 @@
-
+import datetime
+import csv
 from create_vectors import *
 from structure_wsd_s import *
 import argparse
@@ -21,6 +22,7 @@ parser.add_argument("--dim",help="La taille de dimention reduit pour les vecteur
 
 
 args = parser.parse_args()
+
 
 verbes = ["abattre", "aborder", "affecter", "comprendre", "compter"]
 # on s'assure que les fichiers correspondent au verbe sélectionné
@@ -108,7 +110,17 @@ espace_vectorielle=examples.get_espace_vec()
 # 	print(i.get_gold_class())
 # 	print('\t')
 
-E = 10 # nombre d'époques pour tourner l'algo
+E = 5 # nombre d'époques pour tourner l'algo
+
+folder="Essaies"+datetime.datetime.now().strftime("%I:%M%p - %B %d, %Y")
+os.makedirs(folder, exist_ok=True) #on cree un dossier pour chque essaie afin d'enregistrer les essaies
+csv_file="{}.csv".format(folder+'/'+ "ARGS") #ECRITURE DES RESULTATS
+with open(csv_file, 'w') as outfile:
+	w = csv.DictWriter(outfile, vars(args).keys())
+	w.writeheader()
+	w.writerow(vars(args))
+
+
 
 matrix=examples.get_espace_vec()
 print(type(matrix))
@@ -119,9 +131,11 @@ N = len(senses.keys()) # le nb de clusters souhaité
 GOLD = senses.keys() # les numéros des sens, les classes gold
 classification = KMeans(examples.espace_vec, N, GOLD, None, "cosine")
 clusters = classification.create_empty_clusters()
+
 # variante kmeans 1
 for i in range(E):
 	for cluster_id in classification.clusters:
+
 			classification.clusters[cluster_id].delete_examples()
 	for exo in classification.examples:
 		distances = []
@@ -133,11 +147,20 @@ for i in range(E):
 	for cluster_id in classification.clusters:
 		classification.clusters[cluster_id].recalculate_center()
 print("RESULTS 1 : ")
+cluster_dict={}
 for i in classification.clusters:
 	print("CLUSTER ", i)
 	print(len(classification.clusters[i].examples))
 	print(classification.clusters[i].id)
 	print(Counter([exo.gold for exo in classification.clusters[i].examples]))
+	cluster_dict[classification.clusters[i].id]=Counter([exo.gold for exo in classification.clusters[i].examples])
+
+csv_file="{}.csv".format(folder+'/'+ "KMEANS1") #ECRITURE DES RESULTATS
+with open(csv_file, 'w') as outfile:
+	w = csv.DictWriter(outfile, cluster_dict.keys())
+	w.writeheader()
+	w.writerow(cluster_dict)
+
 
 # variante kmeans 2
 for i in range(E):
@@ -152,8 +175,17 @@ for i in range(E):
 		if i < E-1 : # on va supprimer les exemples des clusters jusqu'au dernier run
 			classification.clusters[cluster].delete_examples()
 print("RESULTS 2 : ")
+cluster_dict={}
 for i in classification.clusters:
 	print("CLUSTER ", i)
 	print(len(classification.clusters[i].examples))
 	print(classification.clusters[i].id)
 	print(Counter([exo.gold for exo in classification.clusters[i].examples]))
+	cluster_dict[classification.clusters[i].id]=Counter([exo.gold for exo in classification.clusters[i].examples])
+
+csv_file="{}.csv".format(folder+'/'+ "KMEANS2") #ECRITURE DES RESULTATS
+with open(csv_file, 'w') as outfile:
+	w = csv.DictWriter(outfile, cluster_dict.keys())
+	w.writeheader()
+	w.writerow(cluster_dict)
+

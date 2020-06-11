@@ -1,0 +1,2 @@
+verbe,conll,gold,tok_ids,inventaire,r,traits,n,fusion_method,linear_method,dim
+abattre,/Users/beyzatasdelen/Desktop/semi-supervised_WSD/data/abattre/abattre-161.conll,/Users/beyzatasdelen/Desktop/semi-supervised_WSD/data/abattre/abattre-161.gold,/Users/beyzatasdelen/Desktop/semi-supervised_WSD/data/abattre/abattre-161.tok_ids,/Users/beyzatasdelen/Desktop/semi-supervised_WSD/inventaire_de_sens.xlsx,y,['linear'],5,,moyenne,10
