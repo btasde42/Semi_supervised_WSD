@@ -4,6 +4,7 @@ from structure_wsd_s import *
 import argparse
 import numpy as np
 import random
+from scipy.spatial.distance import cosine
 
 parser = argparse.ArgumentParser()
 parser.add_argument("verbe", help = "abattre, aborder, affecter, comprendre, compter")
@@ -101,112 +102,58 @@ else: #si on demande tous les deux traits linear et syntx
 espace_vectorielle=examples.get_espace_vec()
 
 
-for i in espace_vectorielle:
-	print(i.get_index())
-	print(i.get_vector())
-	print(i.get_gold_class())
-	print('\t')
+# for i in espace_vectorielle:
+# 	print(i.get_index())
+# 	print(i.get_vector())
+# 	print(i.get_gold_class())
+# 	print('\t')
 
-E = 30 # nombre d'époques pour tourner l'algo
+E = 10 # nombre d'époques pour tourner l'algo
 
 matrix=examples.get_espace_vec()
 print(type(matrix))
 random.shuffle(matrix)
-print(type(matrix))
-print(len(matrix))
-print(matrix[0])
-print(examples.espace_vec[0].get_index())
-index = examples.espace_vec[0].get_index()
-print(examples.espace_vec[0].get_vector())
-vector = examples.espace_vec[0].get_vector()
-print(examples.espace_vec[0].get_gold_class())
-#print("vérification fonctions ")
-#print(Examples.get_Ovector_by_id(index).vector)
-#print(Examples.get_Ovector_by_vector(vector).index)
-#print(Examples.get_Ovector_by_vector(vector).gold)
-#for i in matrix:
-#	print(i.get_index())
-#	print(i.get_vector())
-#	print(i.get_gold_class())
-#	print('\t')
-
-# on calcule les occurrences des senses
-# dans le as où l'exemple se trouve à la même distance de plusieurs clusters, 
-# on va choisir celui dont le sens est le plus fréquent
 senses = Counter(int(line) for line in file_gold)
-#print("SENSES ", senses)
-#print(senses.keys())
-#print(len(senses.keys()))
+print("SENSES ", senses)
 N = len(senses.keys()) # le nb de clusters souhaité
 GOLD = senses.keys() # les numéros des sens, les classes gold
-classification = KMeans(examples.espace_vec, N, GOLD, None, "cosine") # 6 clusters pour abattre; à remplacer ensuite par le nombre de sens
-#print(len(classification.examples))
+classification = KMeans(examples.espace_vec, N, GOLD, None, "cosine")
 clusters = classification.create_empty_clusters()
-print("CLUSTER INITIALISATION ")
-print(classification.clusters)
-for idx in classification.clusters:
-	print(classification.clusters[idx].center)
-	print(classification.clusters[idx].id)
-
-#print(len(classification.examples))
-
-for i in range(E): # nombre d'époques à définir
-#	print("RUN ", i)
-	#for cluster in classification.clusters:
-
-	distance = classification.distance_matrix("cosine")
-	for j in range(len(distance.T)): # on parcourt les exemples ; il faut savoir à quel id des exemples correspond j
-		min_value_index = np.argmin(distance.T[j]) # on trouve l'indice de la valeur min; c'est l'id du CLUSTER
-		#print(distance.T[j])
-		#print("MIN VALUE INDEX = ", min_value_index)
-		#print(min_value_index)
-		#exo = classification.examples[j]
-		exo = matrix[j] # exo à ajouter dans le cluster #min_value_index
-		#print("EXO IDX ", exo.index)
-		#print("type exo")
-		#print(type(exo))
-		if exo != classification.clusters[min_value_index].initial_example :
-			classification.clusters[min_value_index].add_example_to_cluster(exo) # j = quel id de l'exemple ?
-	for cluster in classification.clusters:
-		#print("EXOS = ", len(classification.clusters[cluster].examples))
-		#print("OLD center = ", classification.clusters[cluster].center)
-		classification.clusters[cluster].recalculate_center()
-		#print("NEW CENTER = ", classification.clusters[cluster].center)
-		if i < E-1 : # on va supprimer les exemples des clusters jusqu'au dernier run
-			classification.clusters[cluster].delete_examples()
-
-# on vérifie le résultat
+# variante kmeans 1
+for i in range(E):
+	for cluster_id in classification.clusters:
+			classification.clusters[cluster_id].delete_examples()
+	for exo in classification.examples:
+		distances = []
+		for cluster_id in classification.clusters:
+			if exo != classification.clusters[cluster_id].initial_example:
+				distances.append(cosine(exo.vector, classification.clusters[cluster_id].center))
+		minimum_distance = np.argmin(distances)
+		classification.clusters[minimum_distance].add_example_to_cluster(exo)
+	for cluster_id in classification.clusters:
+		classification.clusters[cluster_id].recalculate_center()
+print("RESULTS 1 : ")
 for i in classification.clusters:
 	print("CLUSTER ", i)
 	print(len(classification.clusters[i].examples))
+	print(classification.clusters[i].id)
 	print(Counter([exo.gold for exo in classification.clusters[i].examples]))
 
-
-# classification = structure_wsd_s.KMeans(vectors, num_senses, None, "cosine") # 6 clusters pour abattre; à remplacer ensuite par le nombre de sens
-# print(len(classification.examples))
-# clusters = classification.create_empty_clusters()
-# for i,cluster in clusters.items():
-# 	print(cluster.center)
-# print(len(classification.examples))
-# distance = classification.distance_matrix("cosine")
-# #print(len(distance))
-# #for i in range(classification.k):
-# #	for  j in range(len(classification.examples)):
-# #min_distance = np.where(distance == np.amin(distance))
-# #distance = np.array([[11, 12, 13],
-#  #                        [14, 15, 16],
-#   #                       [17, 15, 11],
-#    #                      [12, 14, 15]])
-# minValue = np.amin(distance)
-# print(minValue)
-# min_distance = np.where(distance == np.amin(distance))
-# #print('Tuple of arrays returned : ', min_distance)
-# print('List of coordinates of minimum value in Numpy array : ')
-# 		 # zip the 2 arrays to get the exact coordinates
-# listOfCordinates = list(zip(min_distance[0], min_distance[1]))
-# 		 # travese over the list of cordinates
-# for cord in listOfCordinates:
-# 	print(cord)
-# 	# ensuite il faut regarder les exemples à chaque coordonnée et ajouter l'exemple au cluster correspondant
-# 	# il faut vérifier quoi faire si un exo est à la même distance de deux clusters
-
+# variante kmeans 2
+for i in range(E):
+	distance = classification.distance_matrix("cosine")
+	for j in range(len(distance.T)): # on parcourt les exemples ; il faut savoir à quel id des exemples correspond j
+		min_value_index = np.argmin(distance.T[j]) # on trouve l'indice de la valeur min; c'est l'id du CLUSTER
+		exo = matrix[j] # exo à ajouter dans le cluster #min_value_index
+		if exo != classification.clusters[min_value_index].initial_example :
+			classification.clusters[min_value_index].add_example_to_cluster(exo) # j = quel id de l'exemple ?
+	for cluster in classification.clusters:
+		classification.clusters[cluster].recalculate_center()
+		if i < E-1 : # on va supprimer les exemples des clusters jusqu'au dernier run
+			classification.clusters[cluster].delete_examples()
+print("RESULTS 2 : ")
+for i in classification.clusters:
+	print("CLUSTER ", i)
+	print(len(classification.clusters[i].examples))
+	print(classification.clusters[i].id)
+	print(Counter([exo.gold for exo in classification.clusters[i].examples]))
