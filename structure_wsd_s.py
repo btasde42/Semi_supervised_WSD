@@ -2,6 +2,7 @@ import sys
 import numpy as np
 from math import *
 import scipy.spatial
+from collections import defaultdict, Counter
 
 class Examples:
 	def __init__(self):
@@ -26,6 +27,7 @@ class Examples:
 				return example
 		print("Warning : example with vector = ", vector, " not found")
 		return None
+
 
 class Ovector:
 	def __init__(self,index,gold,methode=None,traits_syntaxique=None,traits_ngram=None):
@@ -63,19 +65,19 @@ class Ovector:
 
 class Cluster:
 	""" Le class de l'objet cluster """
-	def __init__(self,id_cluster, initial_example, examples):
+	def __init__(self,id_cluster, center, examples,initial_example=None):
 		"""Args:
 			id: le id de cluster sois int sois str -> id correspond au id du sens
 			examples: les exemples appertenant à cluster
 		"""
 		# AJOUTER ATTRIBUT GOLD
 		self.id=id_cluster
-		self.initial_example = initial_example
+		self.initial_example=initial_example
 		#self.gold = gold
 		#self.examples=examples  #les exemples associées à cette cluster de sens, type:matrix
 		self.examples = []
 		self.examples.append(examples)
-		self.center = np.mean([ example.vector for example in self.examples], axis=0)
+		self.center = center
 		print("SELF CENTER ", self.center)
 		#self.center = np.mean(self.examples, axis = 0)
 	
@@ -87,20 +89,35 @@ class Cluster:
 	
 	def recalculate_center(self):
 		self.center = np.mean([ example.vector for example in self.examples], axis=0)
+
 	
 	def delete_examples(self):
 		self.examples = []
+	
+	def resave_initial_example(self):
 		self.examples.append(self.initial_example)
+
+	def redefine_id(self,n_id):
+		self.id=n_id
 
 class KMeans:
 	_ID = 0
-	def __init__(self, examples, k, gold, contraints,distance_formula):
+	def __init__(self, examples, k, gold, contraints,distance_formula,centers):
 		self.k=k
 		self.gold = gold # les noms des clusters=classes gold
 		self.conraints=contraints
 		self.distance_formula=distance_formula
-		self.examples=examples #pas encore bien etablie
+		self.examples=examples 
 		self.clusters = {}
+		self.centers=centers
+
+	def create_empty_clustersPlus(self):
+		""" Initialisation des clusters selon les centres provient de KMeans++
+		"""
+		for i in self.centers:
+			self.clusters[self._ID]=Cluster(i.gold,i.vector,i) #pas de initial exemple
+			self._ID+=1
+
 	def create_empty_clusters(self):
 		""" on initialis les k cluster avec le centre et un exemple
 		"""
@@ -128,6 +145,7 @@ class KMeans:
 		id_example = np.where(self.examples == example)
 		self.examples = np.delete(self.examples, id_example, axis=0)
 
+
 	def distance_matrix(self, distance_formula):
 		"""distance_formula : string, ex cosine, euclidean, cityblock (for manhattan distance)
 		"""
@@ -137,37 +155,40 @@ class KMeans:
 		#	print(len(center))
 		# IL FAUT PRENDRE EN COMPTE LES EXOS QUI NE SONT PAS DANS LES CLUSTERS ! 
 		# return scipy.spatial.distance.cdist(centers, self.examples, distance_formula)
-		return scipy.spatial.distance.cdist(centers, [example.vector for example in self.examples], distance_formula)
-	
+		if self.distance_formula.lower() == 'cosine':
+			return scipy.spatial.distance.cdist(centers, [example.vector for example in self.examples], distance_formula)
+		elif self.distance_formula.lower() == 'euclidean':
+			return scipy.spatial.distance.cdist(centers, [example.vector for example in self.examples], distance_formula)		
+		elif self.distance_formula.lower() == 'cityblock':
+			return scipy.spatial.distance.cdist(centers, [example.vector for example in self.examples], distance_formula)
+		else:
+			print("Distance formule non-trouvé !!!")
 	def retun_final_clusters(self):
 		pass
 
-class WSD:
-	def __init__(self,method,examples):
-		self.method = method
-		self.exampls=examples
+def evaluate(clusters):
+	dict_scores=defaultdict(dict)
+	classes=Counter()
+	dict_vraies={}
+	precision=0.0
+	rappel=0.0
+	F_score=0.0
+	
+	for c in clusters:
+		for e in clusters[c].examples:
+			classes[e.gold]+=1 #on calcule le nombre de gold pour chaque classes
 
-	def evaluate(self,examples):
-		dict_scores=defaultdict(dict)
-		classes=Counter()
-		dict_vraies={}
-		precision=0.0
-		rappel=0.0
-		F_score=0.0
+	for c in clusters:
+		gold_cluster=clusters[c].id
+
+		id_cluster="Cluster"+str(c)+"_gold:"+str(gold_cluster)
+		vrai=0
+		for e in clusters[c].examples:
+			if e.gold==gold_cluster:
+				vrai+=1
 		
-		for c in clusters:
-			for e in c.examples:
-				classes[e.gold]+=1 #on calcule le nombre de gold pour chaque classes
+		dict_scores[id_cluster]['precision']=vrai/len(clusters[c].examples)
+		dict_scores[id_cluster]['rappel']= vrai/classes[gold_cluster]
+		dict_scores[id_cluster]['F']= 2* ((dict_scores[id_cluster]['precision']*dict_scores[id_cluster]['rappel']) / (dict_scores[id_cluster]['precision']+dict_scores[id_cluster]['rappel']))
 
-		for c in clusters:
-			id_cluster=c.id
-			centre_cluster=c.center.gold #le gold de l'exemple de centre
-			vrai=0
-			for e in c.examples:
-				if e.gold==centre_cluster:
-					vrai+=1
-			dict_scores[id_cluster]['precision']=vrai/len(c.examples)
-			dict_scores[id_cluster]['rappel']= vrai/classes[centre_cluster]
-			dict_scores[id_cluster]['F']= 2* ((dict_scores[id_cluster]['precision']*dict_scores[id_cluster]['rappel']) / (dict_scores[id_cluster]['precision']+dict_scores[id_cluster]['rappel']))
-
-		return dict_scores
+	return dict_scores

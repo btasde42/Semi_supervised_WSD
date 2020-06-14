@@ -51,7 +51,7 @@ def read_conll(conll, gold, tok_ids, n, inventaire,method=None):
 			if method.lower() == 'moyenne':
 				vector_n_i=np.mean(vector_n_i, axis=0)
 			if method.lower() == 'concat':
-				vector_n_i=np.vstack(vector_n_i)
+				vector_n_i=np.concatenate(vector_n_i)
 	
 		linear_vectors.append(vector_n_i)
 		############
@@ -144,7 +144,7 @@ def reduce_dimension(vectors,name_type,verbe,dimention):
 	vectors = sc.fit_transform(vectors)
 	pca = decomposition.PCA(n_components = dimention)
 	vectors = pca.fit_transform(vectors)
-	np.savetxt(verbe+"_reduced_vectors"+name_type, vectors, delimiter = "\t")
+	#np.savetxt(verbe+"_reduced_vectors"+name_type, vectors, delimiter = "\t")
 
 	# variance exmpliquée : pour voir l'importance de chaque composante
 	# combien d'information est gardé quand on réduit la taille des vecteurs
