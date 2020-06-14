@@ -94,6 +94,7 @@ if len(args.traits)==1: #s'il y a pas les deux traits démandé mais qu'un seul
 else: #si on demande tous les deux traits linear et syntx
 	if args.r.lower()=='y': #si la reduction est demandé
 		np.savetxt("{}.txt".format(folder+'/'+args.verbe+"_vectors_syntx"), vectors_syntx, delimiter = "\t")
+		np.savetxt("{}.txt".format(folder+'/'+args.verbe+"_linear_vectors"), vectors_linear, delimiter = "\t")
 		vectors_linear=reduce_dimension(vectors_linear,'linear',args.verbe,int(args.dim))
 		vectors_syntx=reduce_dimension(vectors_syntx,'syntx',args.verbe,int(args.dim))
 		examples=Examples() 
@@ -106,13 +107,12 @@ else: #si on demande tous les deux traits linear et syntx
 	else:
 		examples=Examples()
 		for i in range(len(vectors_linear)):
-			gold=file_gold[i]
+			gold=file_gold[i].strip('\n')
 			vector=Ovector(i,gold,args.fusion_method,vectors_syntx[i],vectors_linear[i])
 			vector.fusion_traits()
 			examples.set_vector_to_matrix(vector)
 
 
-espace_vectorielle=examples.get_espace_vec()
 E = 50# nombre d'époques pour tourner l'algo
 
 
