@@ -47,7 +47,11 @@ class Ovector:
 			moyenne_syntx=np.mean(self.traits_syntaxique)
 			moyenne_ngram=np.mean(self.traits_ngram)
 			self.vector=np.array([moyenne_syntx,moyenne_ngram]) #on cree un vecteur de taille (2,)
-
+		if self.methode.lower() == 'moyenne2' :
+			#print(type(self.traits_syntaxique))
+			#print(np.mean((self.traits_syntaxique, self.traits_ngram), axis = 0))
+			self.vector = np.mean((self.traits_syntaxique, self.traits_ngram), axis = 0)
+			#return np.mean(np.array([traits_syntaxique, traits_linear]),axis=0) # un vecteur moyen de taille réduite (après la réduction avec ACP)
 		if self.methode.lower() == 'concat' :
 			self.vector=np.concatenate((self.traits_syntaxique,self.traits_ngram),axis=None)
 
@@ -65,7 +69,7 @@ class Ovector:
 
 class Cluster:
 	""" Le class de l'objet cluster """
-	def __init__(self,id_cluster, center, examples,initial_example=None):
+	def __init__(self,id_cluster, center, examples, initial_example) : # initial_example=None):
 		"""Args:
 			id: le id de cluster sois int sois str -> id correspond au id du sens
 			examples: les exemples appertenant à cluster
@@ -78,7 +82,7 @@ class Cluster:
 		self.examples = []
 		self.examples.append(examples)
 		self.center = center
-		print("SELF CENTER ", self.center)
+		#print("SELF CENTER ", self.center)
 		#self.center = np.mean(self.examples, axis = 0)
 	
 	def add_example_to_cluster(self,example):
@@ -88,6 +92,9 @@ class Cluster:
 		#self.center = np.mean(self.examples, axis = 0)
 	
 	def recalculate_center(self):
+		#for example in self.examples:
+		#	print(type(example))
+		#	print(example.vector)
 		self.center = np.mean([ example.vector for example in self.examples], axis=0)
 
 	
@@ -115,7 +122,8 @@ class KMeans:
 		""" Initialisation des clusters selon les centres provient de KMeans++
 		"""
 		for i in self.centers:
-			self.clusters[self._ID]=Cluster(i.gold,i.vector,i) #pas de initial exemple
+			#self.clusters[self._ID]=Cluster(i.gold,i.vector,i) #pas de initial exemple
+			self.clusters[self._ID]=Cluster(i.gold,i.vector,i, None)
 			self._ID+=1
 
 	def create_empty_clusters(self):
@@ -128,13 +136,16 @@ class KMeans:
 			for i in range(len(self.examples)):
 				#print(self.examples[i].gold)
 				if int(self.examples[i].gold[0]) == g:
-					print("TRUE")
-					self.clusters[self._ID] = Cluster(g, self.examples[i], self.examples[i]) # à changer ensuite gold -> int 
+					#print("TRUE")
+					self.clusters[self._ID] = Cluster(g, self.examples[i].vector, self.examples[i], self.examples[i]) # à changer ensuite gold -> int 
+					#print("initial ", self.clusters[self._ID].initial_example)
 					self._ID+=1
-					print(i)
+					#print(i)
 					break
-		#for i in range(self.k):
-		#	self.clusters[i] = Cluster(i, self.examples[i]) #, self.examples[i])
+		#for i in range(len(self.clusters)):
+		#	print((self.clusters[i].center.gold, self.clusters[i].center.vector))
+			#print("initial ", self.clusters[i].initial_example)
+			#self.clusters[i] = Cluster(i, self.examples[i]) #, self.examples[i])
 		#	#self.examples = np.delete(self.examples, i, axis=0) # no need
 		return self.clusters
 
