@@ -24,7 +24,7 @@ parser.add_argument("--n",type=int, help='la taille de contexte pour les linears
 parser.add_argument("--fusion_method",help="La methode de fusion pour differents types des vecteurs de traits s'il y en a plusieurs")
 parser.add_argument("--linear_method", help='somme ou moyenne pour fusionner les traits de linear')
 parser.add_argument("--dim",help="La taille de dimention reduit pour les vecteurs de verbe")
-
+parser.add_argument("--cluster_type",help="le type de clustering kmeans : basic, constrained, ++ ")
 
 args = parser.parse_args()
 
@@ -98,12 +98,13 @@ else: #si on demande tous les deux traits linear et syntx
 		vectors_linear=reduce_dimension(vectors_linear,'linear',args.verbe,int(args.dim))
 		vectors_syntx=reduce_dimension(vectors_syntx,'syntx',args.verbe,int(args.dim))
 		examples=Examples() 
+		#print("LEN LINEAR : ", len(vectors_linear))
 		for i in range(len(vectors_linear)):
 			gold=file_gold[i].strip('\n')
 			vector=Ovector(i,gold,args.fusion_method,vectors_syntx[i],vectors_linear[i])
 			vector.fusion_traits()
 			examples.set_vector_to_matrix(vector)
-
+		print("TRY EXAMPLES 125 : ", examples.get_Ovector_by_id(125).vector)
 	else:
 		examples=Examples()
 		for i in range(len(vectors_linear)):
@@ -127,56 +128,92 @@ GOLD = senses.keys() # les numéros des sens, les classes gold
 print(N)
 
 ###INITIALISATION DES CENTRES AVEC KMEANS++####
+if args.cluster_type =='++' :
+	centers=[]
+	i=rd.randint(0,len(matrix))
+	print("I = ", i)
+	center= examples.get_Ovector_by_id(i) #on rajoute une premier vector aléatoire comme centre
+	print("FIRST CENTER = ", center.vector)
+	centers.append(center)
+	for cluster in range(N-1): #on va initialiser le k-1 autre centre de cluster qui reste
+		distance=np.array([])
+		for i in matrix: #chaque exemple dans l'espace
+			point=i.vector
+			distance=np.append(distance,np.min(np.sum((point-center.vector)**2)))
+		
+		proba=distance/np.sum(distance)
+		cumul_proba=np.cumsum(proba)
+		r=rd.random()
+		i=0
+		for j,p in enumerate(cumul_proba):
+			if r<p:
+				i=j
+				break
+		centers.append(examples.get_Ovector_by_id(i))
 
-centers=[]
-i=rd.randint(0,len(matrix))
-center= examples.get_Ovector_by_id(i) #on rajoute une premier vector aléatoire comme centre
-centers.append(center)
-for cluster in range(N-1): #on va initialiser le k-1 autre centre de cluster qui reste
-	distance=np.array([])
-	for i in matrix: #chaque exemple dans l'espace
-		point=i.vector
-		distance=np.append(distance,np.min(np.sum((point-center.vector)**2)))
-	
-	proba=distance/np.sum(distance)
-	cumul_proba=np.cumsum(proba)
-	r=rd.random()
-	i=0
-	for j,p in enumerate(cumul_proba):
-		if r<p:
-			i=j
-			break
-	centers.append(examples.get_Ovector_by_id(i))
+	print("CENTERS")
+	print([(c.gold,c.vector) for c in centers])
+	classification1 = KMeans(matrix, N, GOLD, None, args.dist_formula ,centers)
+	classification1.create_empty_clustersPlus() #KMEANS ++
 
-print("CENTERS")
-print([(c.gold,c.vector) for c in centers])
-classification1 = KMeans(matrix, N, GOLD, None, args.dist_formula ,centers)
-classification1.create_empty_clustersPlus() #KMEANS ++
-
-classification2 = KMeans(matrix, N, GOLD, None, args.dist_formula ,centers)
-classification2.create_empty_clustersPlus() #KMEANS ++
+	classification2 = KMeans(matrix, N, GOLD, None, args.dist_formula ,centers)
+	classification2.create_empty_clustersPlus() #KMEANS ++
 
 ########################
+if args.cluster_type == 'constrained':
+	classification1 = KMeans(matrix, N, GOLD, None, args.dist_formula, None) # on n'a pas encore de centres
+	classification1.create_empty_clusters() # constrainted Kmeans
+	
+	classification2 = KMeans(matrix, N, GOLD, None, args.dist_formula, None) # on n'a pas encore de centres
+	classification2.create_empty_clusters() # constrainted Kmeans
+
+	for i in range(E):
+		for cluster_id in classification1.clusters:
+				classification1.clusters[cluster_id].delete_examples()
+				classification1.clusters[cluster_id].resave_initial_example()
+				print(classification1.clusters[cluster_id].initial_example)
+		for exo in classification1.examples:
+			distances = []
+			for cluster_id in classification1.clusters:
+				if exo != classification1.clusters[cluster_id].initial_example:
+					# print(type(exo.vector))
+					# print(exo.vector)
+					# print(type(classification1.clusters[cluster_id].center))
+					# print(type(classification1.clusters[cluster_id].center.vector))
+					# print(classification1.clusters[cluster_id].center.vector)
+					distances.append(cosine(exo.vector, classification1.clusters[cluster_id].center))
+			minimum_distance = np.argmin(distances)
+			classification1.clusters[minimum_distance].add_example_to_cluster(exo)
+		for cluster_id in classification1.clusters:
+			#print("INITIAL : ", classification1.clusters[cluster_id].initial_example)
+			classification1.clusters[cluster_id].recalculate_center()
+			#print("NEW CENTER ", type(classification1.clusters[cluster_id].center))
+			#print(classification1.clusters[cluster_id].center.vector)
+# variante kmeans 1
+
 
 # variante kmeans 1
-for i in range(E):
-	for cluster_id in classification1.clusters:
-
-			classification1.clusters[cluster_id].delete_examples()
-	for exo in classification1.examples:
-		distances = []
+if args.cluster_type == "++":
+	for i in range(E):
 		for cluster_id in classification1.clusters:
-			if exo != classification1.clusters[cluster_id].initial_example:
-				if args.dist_formula.lower == 'cosine':
-					distances.append(cosine(exo.vector, classification1.clusters[cluster_id].center))
-				elif args.dist_formula.lower == 'euclidean':
-					distances.append(euclidean(exo.vector, classification1.clusters[cluster_id].center))
-				else:
-					distances.append(cityblock(exo.vector, classification1.clusters[cluster_id].center))
-		minimum_distance = np.argmin(distances)
-		classification1.clusters[minimum_distance].add_example_to_cluster(exo)
-	for cluster_id in classification1.clusters:
-		classification1.clusters[cluster_id].recalculate_center()
+				classification1.clusters[cluster_id].delete_examples()
+				#if args.cluster_type == "constrained" :
+				#	classification1.clusters[cluster_id].resave_initial_example()
+		for exo in classification1.examples:
+			distances = []
+			for cluster_id in classification1.clusters:
+				#print("INITIAL : ", classification1.clusters[cluster_id].initial_example)
+				if exo != classification1.clusters[cluster_id].initial_example:
+					if args.dist_formula.lower() == 'cosine':
+						distances.append(cosine(exo.vector, classification1.clusters[cluster_id].center))
+					elif args.dist_formula.lower() == 'euclidean':
+						distances.append(euclidean(exo.vector, classification1.clusters[cluster_id].center))
+					else:
+						distances.append(cityblock(exo.vector, classification1.clusters[cluster_id].center))
+			minimum_distance = np.argmin(distances)
+			classification1.clusters[minimum_distance].add_example_to_cluster(exo)
+		for cluster_id in classification1.clusters:
+			classification1.clusters[cluster_id].recalculate_center()
 		#classification1.clusters[cluster].resave_initial_example()
 
 
