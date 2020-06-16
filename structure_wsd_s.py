@@ -194,12 +194,15 @@ def evaluate(clusters):
 
 		id_cluster="Cluster"+str(c)+"_gold:"+str(gold_cluster)
 		vrai=0
+		faux=0
 		for e in clusters[c].examples:
 			if e.gold==gold_cluster:
 				vrai+=1
+			else:
+				faux+=1
 		
 		dict_scores[id_cluster]['precision']=vrai/len(clusters[c].examples)
 		dict_scores[id_cluster]['rappel']= vrai/classes[gold_cluster]
 		dict_scores[id_cluster]['F']= 2* ((dict_scores[id_cluster]['precision']*dict_scores[id_cluster]['rappel']) / (dict_scores[id_cluster]['precision']+dict_scores[id_cluster]['rappel']))
-
+	dict_scores[rand_index]=
 	return dict_scores

@@ -24,7 +24,7 @@ parser.add_argument("--n",type=int, help='la taille de contexte pour les linears
 parser.add_argument("--fusion_method",help="La methode de fusion pour differents types des vecteurs de traits s'il y en a plusieurs")
 parser.add_argument("--linear_method", help='somme ou moyenne pour fusionner les traits de linear')
 parser.add_argument("--dim",help="La taille de dimention reduit pour les vecteurs de verbe")
-parser.add_argument("--cluster_type",help="le type de clustering kmeans : basic, constrained, ++ ")
+parser.add_argument("--cluster_type",help="le type de clustering kmeans : basic, constrained, ++, constrained++ ")
 
 args = parser.parse_args()
 
@@ -128,12 +128,12 @@ GOLD = senses.keys() # les numéros des sens, les classes gold
 print(N)
 
 ###INITIALISATION DES CENTRES AVEC KMEANS++####
-if args.cluster_type =='++' :
+if args.cluster_type.lower() =='++' :
 	centers=[]
 	i=rd.randint(0,len(matrix))
 	print("I = ", i)
 	center= examples.get_Ovector_by_id(i) #on rajoute une premier vector aléatoire comme centre
-	print("FIRST CENTER = ", center.vector)
+	#print("FIRST CENTER = ", center.vector)
 	centers.append(center)
 	for cluster in range(N-1): #on va initialiser le k-1 autre centre de cluster qui reste
 		distance=np.array([])
@@ -159,8 +159,43 @@ if args.cluster_type =='++' :
 	classification2 = KMeans(matrix, N, GOLD, None, args.dist_formula ,centers)
 	classification2.create_empty_clustersPlus() #KMEANS ++
 
+### CONSTRAINED ++ ######
+if args.cluster_type.lower() =='constrained++':
+	centers=[]
+	centers_gold=[]
+	i=rd.randint(0,len(matrix))
+	print("I = ", i)
+	center= examples.get_Ovector_by_id(i) #on rajoute une premier vector aléatoire comme centre
+	centers_gold.append(examples.get_Ovector_by_id(i).gold)
+	#print("FIRST CENTER = ", center.vector)
+	centers.append(center)
+	for cluster in range(N-1): #on va initialiser le k-1 autre centre de cluster qui reste
+		distance=np.array([])
+		for x in matrix: #chaque exemple dans l'espace
+			point=x.vector
+			distance=np.append(distance,np.min(np.sum((point-center.vector)**2)))
+		
+		proba=distance/np.sum(distance)
+		cumul_proba=np.cumsum(proba)
+		r=rd.random()
+		i=0
+		for j,p in enumerate(cumul_proba):
+			if r<p and examples.get_Ovector_by_id(j).gold not in centers_gold:
+				i=j
+				break
+		centers.append(examples.get_Ovector_by_id(i))
+		centers_gold.append(examples.get_Ovector_by_id(i).gold)
+
+	print("CENTERS")
+	print([(c.gold,c.vector) for c in centers])
+	classification1 = KMeans(matrix, N, GOLD, None, args.dist_formula ,centers)
+	classification1.create_empty_clustersPlus() #KMEANS ++
+
+	classification2 = KMeans(matrix, N, GOLD, None, args.dist_formula ,centers)
+	classification2.create_empty_clustersPlus() #KMEANS ++
+
 ########################
-if args.cluster_type == 'constrained':
+if args.cluster_type.lower() == 'constrained' or 'constrained++':
 	classification1 = KMeans(matrix, N, GOLD, None, args.dist_formula, None) # on n'a pas encore de centres
 	classification1.create_empty_clusters() # constrainted Kmeans
 	
@@ -171,7 +206,7 @@ if args.cluster_type == 'constrained':
 		for cluster_id in classification1.clusters:
 				classification1.clusters[cluster_id].delete_examples()
 				classification1.clusters[cluster_id].resave_initial_example()
-				print(classification1.clusters[cluster_id].initial_example)
+				#print(classification1.clusters[cluster_id].initial_example)
 		for exo in classification1.examples:
 			distances = []
 			for cluster_id in classification1.clusters:
@@ -189,11 +224,67 @@ if args.cluster_type == 'constrained':
 			classification1.clusters[cluster_id].recalculate_center()
 			#print("NEW CENTER ", type(classification1.clusters[cluster_id].center))
 			#print(classification1.clusters[cluster_id].center.vector)
-# variante kmeans 1
+
+	print("RESULTS 1 : ")
+	cluster_dict1={}
+	for i in classification1.clusters:
+		classif1=Counter([exo.gold for exo in classification1.clusters[i].examples])
+		classification1.clusters[i].redefine_id(max(classif1,key=classif1.get)) #id de cluster == la classe le plus nombreaux
+		cluster_dict1[classification1.clusters[i].id]=classif1
+		print("CLUSTER ", i)
+		print(len(classification1.clusters[i].examples))
+		print(classification1.clusters[i].id)
+		print(classif1)
+		print('\t')
+	print(cluster_dict1)
+
+	eval1=evaluate(classification1.clusters)
+
+	print(eval1)
+
+	csv_file="{}.csv".format(folder+'/'+ "KMEANS1") #ECRITURE DES RESULTATS
+	dfa = pd.DataFrame(cluster_dict1)
+	dfa.to_csv(csv_file)
+
+	csv_file="{}.csv".format(folder+'/'+ "KMEANS1_evaluate") #ECRITURE DES RESULTATS
+	dfb = pd.DataFrame(eval1)
+	dfb.to_csv(csv_file)
 
 
-# variante kmeans 1
-if args.cluster_type == "++":
+
+	# variante kmeans 2
+	for i in range(E):
+		distance = classification2.distance_matrix(args.dist_formula)
+		for j in range(len(distance.T)): # on parcourt les exemples ; il faut savoir à quel id des exemples correspond j
+			min_value_index = np.argmin(distance.T[j]) # on trouve l'indice de la valeur min; c'est l'id du CLUSTER
+			exo = matrix[j] # exo à ajouter dans le cluster #min_value_index
+			if exo != classification2.clusters[min_value_index].initial_example :
+				classification2.clusters[min_value_index].add_example_to_cluster(exo) # j = quel id de l'exemple ?
+		for cluster in classification2.clusters:
+			classification2.clusters[cluster].recalculate_center()
+
+			if i < E-1 : # on va supprimer les exemples des clusters jusqu'au dernier run
+				classification2.clusters[cluster].delete_examples()
+				#classification2.clusters[cluster].resave_initial_example()
+
+	print("RESULTS 2 : ")
+	cluster_dict2={}
+	for i in classification2.clusters:
+		classif2=Counter([exo.gold for exo in classification2.clusters[i].examples])
+		classification2.clusters[i].redefine_id(max(classif2,key=classif2.get)) #id de cluster == la classe le plus nombreaux
+		cluster_dict2[classification2.clusters[i].id]=classif2
+		print("CLUSTER ", i)
+		print(len(classification2.clusters[i].examples))
+		print(classification2.clusters[i].id)
+		print(classif2)
+		print('\t')
+	print(cluster_dict2)
+
+	eval2=evaluate(classification2.clusters)
+	print(eval2)
+
+
+if args.cluster_type.lower() == "++":
 	for i in range(E):
 		for cluster_id in classification1.clusters:
 				classification1.clusters[cluster_id].delete_examples()
@@ -217,63 +308,63 @@ if args.cluster_type == "++":
 		#classification1.clusters[cluster].resave_initial_example()
 
 
-print("RESULTS 1 : ")
-cluster_dict1={}
-for i in classification1.clusters:
-	classif1=Counter([exo.gold for exo in classification1.clusters[i].examples])
-	classification1.clusters[i].redefine_id(max(classif1,key=classif1.get)) #id de cluster == la classe le plus nombreaux
-	cluster_dict1[classification1.clusters[i].id]=classif1
-	print("CLUSTER ", i)
-	print(len(classification1.clusters[i].examples))
-	print(classification1.clusters[i].id)
-	print(classif1)
-	print('\t')
-print(cluster_dict1)
+	print("RESULTS 1 : ")
+	cluster_dict1={}
+	for i in classification1.clusters:
+		classif1=Counter([exo.gold for exo in classification1.clusters[i].examples])
+		classification1.clusters[i].redefine_id(max(classif1,key=classif1.get)) #id de cluster == la classe le plus nombreaux
+		cluster_dict1[classification1.clusters[i].id]=classif1
+		print("CLUSTER ", i)
+		print(len(classification1.clusters[i].examples))
+		print(classification1.clusters[i].id)
+		print(classif1)
+		print('\t')
+	print(cluster_dict1)
 
-eval1=evaluate(classification1.clusters)
+	eval1=evaluate(classification1.clusters)
 
-print(eval1)
+	print(eval1)
 
-csv_file="{}.csv".format(folder+'/'+ "KMEANS1") #ECRITURE DES RESULTATS
-dfa = pd.DataFrame(cluster_dict1)
-dfa.to_csv(csv_file)
+	csv_file="{}.csv".format(folder+'/'+ "KMEANS1") #ECRITURE DES RESULTATS
+	dfa = pd.DataFrame(cluster_dict1)
+	dfa.to_csv(csv_file)
 
-csv_file="{}.csv".format(folder+'/'+ "KMEANS1_evaluate") #ECRITURE DES RESULTATS
-dfb = pd.DataFrame(eval1)
-dfb.to_csv(csv_file)
+	csv_file="{}.csv".format(folder+'/'+ "KMEANS1_evaluate") #ECRITURE DES RESULTATS
+	dfb = pd.DataFrame(eval1)
+	dfb.to_csv(csv_file)
 
 
 
-# variante kmeans 2
-for i in range(E):
-	distance = classification2.distance_matrix(args.dist_formula)
-	for j in range(len(distance.T)): # on parcourt les exemples ; il faut savoir à quel id des exemples correspond j
-		min_value_index = np.argmin(distance.T[j]) # on trouve l'indice de la valeur min; c'est l'id du CLUSTER
-		exo = matrix[j] # exo à ajouter dans le cluster #min_value_index
-		if exo != classification2.clusters[min_value_index].initial_example :
-			classification2.clusters[min_value_index].add_example_to_cluster(exo) # j = quel id de l'exemple ?
-	for cluster in classification2.clusters:
-		classification2.clusters[cluster].recalculate_center()
+	# variante kmeans 2
+	for i in range(E):
+		distance = classification2.distance_matrix(args.dist_formula)
+		for j in range(len(distance.T)): # on parcourt les exemples ; il faut savoir à quel id des exemples correspond j
+			min_value_index = np.argmin(distance.T[j]) # on trouve l'indice de la valeur min; c'est l'id du CLUSTER
+			exo = matrix[j] # exo à ajouter dans le cluster #min_value_index
+			if exo != classification2.clusters[min_value_index].initial_example :
+				classification2.clusters[min_value_index].add_example_to_cluster(exo) # j = quel id de l'exemple ?
+		for cluster in classification2.clusters:
+			classification2.clusters[cluster].recalculate_center()
 
-		if i < E-1 : # on va supprimer les exemples des clusters jusqu'au dernier run
-			classification2.clusters[cluster].delete_examples()
-			#classification2.clusters[cluster].resave_initial_example()
+			if i < E-1 : # on va supprimer les exemples des clusters jusqu'au dernier run
+				classification2.clusters[cluster].delete_examples()
+				#classification2.clusters[cluster].resave_initial_example()
 
-print("RESULTS 2 : ")
-cluster_dict2={}
-for i in classification2.clusters:
-	classif2=Counter([exo.gold for exo in classification2.clusters[i].examples])
-	classification2.clusters[i].redefine_id(max(classif2,key=classif2.get)) #id de cluster == la classe le plus nombreaux
-	cluster_dict2[classification2.clusters[i].id]=classif2
-	print("CLUSTER ", i)
-	print(len(classification2.clusters[i].examples))
-	print(classification2.clusters[i].id)
-	print(classif2)
-	print('\t')
-print(cluster_dict2)
+	print("RESULTS 2 : ")
+	cluster_dict2={}
+	for i in classification2.clusters:
+		classif2=Counter([exo.gold for exo in classification2.clusters[i].examples])
+		classification2.clusters[i].redefine_id(max(classif2,key=classif2.get)) #id de cluster == la classe le plus nombreaux
+		cluster_dict2[classification2.clusters[i].id]=classif2
+		print("CLUSTER ", i)
+		print(len(classification2.clusters[i].examples))
+		print(classification2.clusters[i].id)
+		print(classif2)
+		print('\t')
+	print(cluster_dict2)
 
-eval2=evaluate(classification2.clusters)
-print(eval2)
+	eval2=evaluate(classification2.clusters)
+	print(eval2)
 
 csv_file="{}.csv".format(folder+'/'+ "KMEANS2") #ECRITURE DES RESULTATS
 dfc = pd.DataFrame(cluster_dict2)
