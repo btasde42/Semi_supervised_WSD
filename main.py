@@ -229,8 +229,8 @@ if args.cluster_type.lower() == 'constrained' or 'constrained++':
 	cluster_dict1={}
 	for i in classification1.clusters:
 		classif1=Counter([exo.gold for exo in classification1.clusters[i].examples])
-		classification1.clusters[i].redefine_id(max(classif1,key=classif1.get)) #id de cluster == la classe le plus nombreaux
-		cluster_dict1[classification1.clusters[i].id]=classif1
+		classification1.clusters[i].redefine_id(max(classif1,key=classif1.get)) #id de cluster == gold du centre
+		cluster_dict1["Cluster"+str(i)+"_gold: "+str(classification2.clusters[i].id)]=classif1
 		print("CLUSTER ", i)
 		print(len(classification1.clusters[i].examples))
 		print(classification1.clusters[i].id)
@@ -239,16 +239,14 @@ if args.cluster_type.lower() == 'constrained' or 'constrained++':
 	print(cluster_dict1)
 
 	eval1=evaluate(classification1.clusters)
+	cluster_dict1["Fscore"]=eval1
+	print("Fscore: ",eval1)
 
-	print(eval1)
-
-	csv_file="{}.csv".format(folder+'/'+ "KMEANS1") #ECRITURE DES RESULTATS
+	csv_file="{}.csv".format(folder+'/'+ "KMEANS1_eval") #ECRITURE DES RESULTATS
 	dfa = pd.DataFrame(cluster_dict1)
 	dfa.to_csv(csv_file)
 
-	csv_file="{}.csv".format(folder+'/'+ "KMEANS1_evaluate") #ECRITURE DES RESULTATS
-	dfb = pd.DataFrame(eval1)
-	dfb.to_csv(csv_file)
+
 
 
 
@@ -272,7 +270,7 @@ if args.cluster_type.lower() == 'constrained' or 'constrained++':
 	for i in classification2.clusters:
 		classif2=Counter([exo.gold for exo in classification2.clusters[i].examples])
 		classification2.clusters[i].redefine_id(max(classif2,key=classif2.get)) #id de cluster == la classe le plus nombreaux
-		cluster_dict2[classification2.clusters[i].id]=classif2
+		cluster_dict2["Cluster"+str(i)+"_gold: "+str(classification2.clusters[i].id)]=classif2
 		print("CLUSTER ", i)
 		print(len(classification2.clusters[i].examples))
 		print(classification2.clusters[i].id)
@@ -281,8 +279,13 @@ if args.cluster_type.lower() == 'constrained' or 'constrained++':
 	print(cluster_dict2)
 
 	eval2=evaluate(classification2.clusters)
-	print(eval2)
+	
+	cluster_dict2["Fscore"]=eval2
+	print("Fscore: ",eval2)
 
+	csv_file="{}.csv".format(folder+'/'+ "KMEANS2_eval") #ECRITURE DES RESULTATS
+	dfa = pd.DataFrame(cluster_dict2)
+	dfa.to_csv(csv_file)
 
 if args.cluster_type.lower() == "++":
 	for i in range(E):
@@ -313,7 +316,7 @@ if args.cluster_type.lower() == "++":
 	for i in classification1.clusters:
 		classif1=Counter([exo.gold for exo in classification1.clusters[i].examples])
 		classification1.clusters[i].redefine_id(max(classif1,key=classif1.get)) #id de cluster == la classe le plus nombreaux
-		cluster_dict1[classification1.clusters[i].id]=classif1
+		cluster_dict1["Cluster"+str(i)+"_gold: "+str(classification2.clusters[i].id)]=classif1
 		print("CLUSTER ", i)
 		print(len(classification1.clusters[i].examples))
 		print(classification1.clusters[i].id)
@@ -322,16 +325,13 @@ if args.cluster_type.lower() == "++":
 	print(cluster_dict1)
 
 	eval1=evaluate(classification1.clusters)
+	cluster_dict1["Fscore"]=eval1
+	print("Fscore: ",eval1)
 
-	print(eval1)
-
-	csv_file="{}.csv".format(folder+'/'+ "KMEANS1") #ECRITURE DES RESULTATS
+	csv_file="{}.csv".format(folder+'/'+ "KMEANS1_eval") #ECRITURE DES RESULTATS
 	dfa = pd.DataFrame(cluster_dict1)
 	dfa.to_csv(csv_file)
 
-	csv_file="{}.csv".format(folder+'/'+ "KMEANS1_evaluate") #ECRITURE DES RESULTATS
-	dfb = pd.DataFrame(eval1)
-	dfb.to_csv(csv_file)
 
 
 
@@ -355,7 +355,7 @@ if args.cluster_type.lower() == "++":
 	for i in classification2.clusters:
 		classif2=Counter([exo.gold for exo in classification2.clusters[i].examples])
 		classification2.clusters[i].redefine_id(max(classif2,key=classif2.get)) #id de cluster == la classe le plus nombreaux
-		cluster_dict2[classification2.clusters[i].id]=classif2
+		cluster_dict2["Cluster"+str(i)+"_gold: "+str(classification2.clusters[i].id)]=classif2
 		print("CLUSTER ", i)
 		print(len(classification2.clusters[i].examples))
 		print(classification2.clusters[i].id)
@@ -364,15 +364,14 @@ if args.cluster_type.lower() == "++":
 	print(cluster_dict2)
 
 	eval2=evaluate(classification2.clusters)
-	print(eval2)
+	cluster_dict2['Fscore']=eval2
+	print('Fsore:',eval2)
 
-csv_file="{}.csv".format(folder+'/'+ "KMEANS2") #ECRITURE DES RESULTATS
+csv_file="{}.csv".format(folder+'/'+ "KMEANS2_eval") #ECRITURE DES RESULTATS
 dfc = pd.DataFrame(cluster_dict2)
 dfc.to_csv(csv_file)
 
-csv_file="{}.csv".format(folder+'/'+ "KMEANS2_evaluate") #ECRITURE DES RESULTATS
-dfd = pd.DataFrame(eval2)
-dfd.to_csv(csv_file)
+
 
 
 ##########DATA VISUALISATION ############

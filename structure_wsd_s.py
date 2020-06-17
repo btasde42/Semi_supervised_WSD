@@ -180,29 +180,25 @@ class KMeans:
 def evaluate(clusters):
 	dict_scores=defaultdict(dict)
 	classes=Counter()
-	dict_vraies={}
-	precision=0.0
-	rappel=0.0
-	F_score=0.0
+	Fscore_global=0.0
 	
 	for c in clusters:
 		for e in clusters[c].examples:
 			classes[e.gold]+=1 #on calcule le nombre de gold pour chaque classes
 
-	for c in clusters:
+	for c in clusters:	
 		gold_cluster=clusters[c].id
-
-		id_cluster="Cluster"+str(c)+"_gold:"+str(gold_cluster)
 		vrai=0
-		faux=0
 		for e in clusters[c].examples:
 			if e.gold==gold_cluster:
 				vrai+=1
-			else:
-				faux+=1
-		
-		dict_scores[id_cluster]['precision']=vrai/len(clusters[c].examples)
-		dict_scores[id_cluster]['rappel']= vrai/classes[gold_cluster]
-		dict_scores[id_cluster]['F']= 2* ((dict_scores[id_cluster]['precision']*dict_scores[id_cluster]['rappel']) / (dict_scores[id_cluster]['precision']+dict_scores[id_cluster]['rappel']))
-	dict_scores[rand_index]=
-	return dict_scores
+
+
+		precision=vrai/len(clusters[c].examples)
+		rappel= vrai/classes[gold_cluster]
+		F= 2* ((precision*rappel) / (precision+rappel))
+
+		weight= classes[gold_cluster]
+		Fscore_global+=(weight*F)/sum(classes.values())
+
+	return Fscore_global
