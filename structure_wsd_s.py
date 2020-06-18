@@ -202,3 +202,34 @@ def evaluate(clusters):
 		Fscore_global+=(weight*F)/sum(classes.values())
 
 	return Fscore_global
+
+def evaluate2(clusters):
+	dict_scores=defaultdict(dict)
+	classes=Counter()
+	#Fscore_global=0.0
+	precision = 0.0
+	rappel = 0.0
+	for c in clusters:
+		for e in clusters[c].examples:
+			classes[e.gold]+=1 #on calcule le nombre de gold pour chaque classes
+
+	for c in clusters:	
+		gold_cluster=clusters[c].id
+		vrai=0
+		for e in clusters[c].examples:
+			if e.gold==gold_cluster:
+				vrai+=1
+
+
+		precision+=vrai/len(clusters[c].examples)
+		rappel+= vrai/classes[gold_cluster]
+	precision = precision/len(classes)
+	print("precision = ", precision)
+	rappel = rappel/len(classes)
+	print("rappel = ", rappel)
+	F= 2* ((precision*rappel) / (precision+rappel))
+
+	#weight= classes[gold_cluster]
+	#Fscore_global+=(weight*F)/sum(classes.values())
+
+	return F

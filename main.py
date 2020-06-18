@@ -54,9 +54,9 @@ with open(csv_file, 'w') as outfile:
 	w.writerow(vars(args))
 
 vectors_syntx,num_senses,vectors_linear=read_conll(file_conll, file_gold, file_ids, args.n,args.inventaire,args.linear_method)
-
-
-
+#*********************
+vectors_syntx = vectors_syntx[:, :5]
+#*********************
 if len(args.traits)==1: #s'il y a pas les deux traits démandé mais qu'un seul
 	if args.traits[0].lower() =='syntx':
 		if args.r.lower()=='y': #si la reduction est demandé
@@ -238,7 +238,7 @@ if args.cluster_type.lower() == 'constrained' or 'constrained++':
 		print('\t')
 	print(cluster_dict1)
 
-	eval1=evaluate(classification1.clusters)
+	eval1=evaluate2(classification1.clusters)
 	cluster_dict1["Fscore"]=eval1
 	print("Fscore: ",eval1)
 
@@ -278,7 +278,7 @@ if args.cluster_type.lower() == 'constrained' or 'constrained++':
 		print('\t')
 	print(cluster_dict2)
 
-	eval2=evaluate(classification2.clusters)
+	eval2=evaluate2(classification2.clusters)
 	
 	cluster_dict2["Fscore"]=eval2
 	print("Fscore: ",eval2)
@@ -324,7 +324,7 @@ if args.cluster_type.lower() == "++":
 		print('\t')
 	print(cluster_dict1)
 
-	eval1=evaluate(classification1.clusters)
+	eval1=evaluate2(classification1.clusters)
 	cluster_dict1["Fscore"]=eval1
 	print("Fscore: ",eval1)
 
@@ -363,7 +363,7 @@ if args.cluster_type.lower() == "++":
 		print('\t')
 	print(cluster_dict2)
 
-	eval2=evaluate(classification2.clusters)
+	eval2=evaluate2(classification2.clusters)
 	cluster_dict2['Fscore']=eval2
 	print('Fsore:',eval2)
 
@@ -384,6 +384,3 @@ sns.set_style('white')
 customPalette = ['#630C3A', '#39C8C6', '#D3500C', '#FFB139']
 sns.set_palette(customPalette)
 sns.palplot(customPalette)
-
-
-
