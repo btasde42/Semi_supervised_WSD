@@ -102,7 +102,8 @@ class Cluster:
 		self.examples = []
 	
 	def resave_initial_example(self):
-		self.examples.append(self.initial_example)
+		if self.initial_example not in self.examples:
+			self.examples.append(self.initial_example)
 
 	def redefine_id(self,n_id):
 		self.id=n_id
@@ -218,7 +219,6 @@ def evaluate(clusters):
 def evaluate2(clusters):
 	dict_scores=defaultdict(dict)
 	classes=Counter()
-	#Fscore_global=0.0
 	precision = 0.0
 	rappel = 0.0
 	for c in clusters:

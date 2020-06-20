@@ -244,8 +244,9 @@ if args.cluster_type.lower() == 'constrained' or 'constrained++':
 					count+=1
 			if count == len(c_centers):		
 				break
-
-			c_centers = new_centers
+			else:
+				c_centers = new_centers
+				new_centers2=[]
 		else:
 			break
 
@@ -278,9 +279,15 @@ if args.cluster_type.lower() == 'constrained' or 'constrained++':
 	for i in classification2.centers:
 		c_centers2.append(i.vector) #list de centres
 	tour2=0
+
 	while True:
+		for cluster_id in classification2.clusters:
+			classification2.clusters[cluster_id].delete_examples()
+			classification2.clusters[cluster_id].resave_initial_example()
 		if tour2 != E:
-			tour2+=1
+			for cluster_id in classification2.clusters:
+				classification2.clusters[cluster_id].delete_examples()
+				classification2.clusters[cluster_id].resave_initial_example()
 			distance = classification2.distance_matrix(args.dist_formula)
 			for j in range(len(distance.T)): # on parcourt les exemples ; il faut savoir à quel id des exemples correspond j
 				min_value_index = np.argmin(distance.T[j]) # on trouve l'indice de la valeur min; c'est l'id du CLUSTER
@@ -290,7 +297,8 @@ if args.cluster_type.lower() == 'constrained' or 'constrained++':
 			new_centers2=[]
 			for cluster in classification2.clusters:
 				classification2.clusters[cluster].recalculate_center()
-				new_centers2.append(classification1.clusters[cluster].center)
+
+				new_centers2.append(classification2.clusters[cluster].center)
 
 				
 			#####SI LES CENTRES CHANGE OU PAS########
@@ -300,8 +308,11 @@ if args.cluster_type.lower() == 'constrained' or 'constrained++':
 					count2+=1
 			if count2 == len(c_centers2):		
 				break
-			c_centers2 = new_centers2
-			classification2.clusters[cluster].delete_examples()
+			else:
+				c_centers2 = new_centers2
+				new_centers2=[]
+			tour2+=1
+
 		else:
 			break
 
@@ -309,9 +320,7 @@ if args.cluster_type.lower() == 'constrained' or 'constrained++':
 	print("RESULTS 2 : ")
 	cluster_dict2={}
 	for i in classification2.clusters:
-		print(i)
 		classif2=Counter([exo.gold for exo in classification2.clusters[i].examples])
-		print(classif2)
 		classification2.clusters[i].redefine_id(max(classif2,key=classif2.get)) #id de cluster == la classe le plus nombreaux
 		cluster_dict2["Cluster"+str(i)+"_gold: "+str(classification2.clusters[i].id)]=classif2
 		print("CLUSTER ", i)
