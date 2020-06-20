@@ -54,9 +54,9 @@ with open(csv_file, 'w') as outfile:
 	w.writerow(vars(args))
 
 vectors_syntx,num_senses,vectors_linear=read_conll(file_conll, file_gold, file_ids, args.n,args.inventaire,args.linear_method)
-#*********************
-vectors_syntx = vectors_syntx[:, :5]
-#*********************
+
+
+
 if len(args.traits)==1: #s'il y a pas les deux traits démandé mais qu'un seul
 	if args.traits[0].lower() =='syntx':
 		if args.r.lower()=='y': #si la reduction est demandé
@@ -114,7 +114,7 @@ else: #si on demande tous les deux traits linear et syntx
 			examples.set_vector_to_matrix(vector)
 
 
-E = 50# nombre d'époques pour tourner l'algo
+E = 120# nombre d'époques pour tourner l'algo
 
 
 
@@ -127,7 +127,7 @@ N = len(senses.keys()) # le nb de clusters souhaité
 GOLD = senses.keys() # les numéros des sens, les classes gold
 print(N)
 
-###INITIALISATION DES CENTRES AVEC KMEANS++####
+###INITIALIZING CENTERS+CLUSTERS WITH Kmeans++ ####
 if args.cluster_type.lower() =='++' :
 	centers=[]
 	i=rd.randint(0,len(matrix))
@@ -154,12 +154,12 @@ if args.cluster_type.lower() =='++' :
 	print("CENTERS")
 	print([(c.gold,c.vector) for c in centers])
 	classification1 = KMeans(matrix, N, GOLD, None, args.dist_formula ,centers)
-	classification1.create_empty_clustersPlus() #KMEANS ++
+	classification1.create_empty_clustersPlus('n') #KMEANS ++
 
 	classification2 = KMeans(matrix, N, GOLD, None, args.dist_formula ,centers)
-	classification2.create_empty_clustersPlus() #KMEANS ++
+	classification2.create_empty_clustersPlus('n') #KMEANS ++
 
-### CONSTRAINED ++ ######
+### INITIALIZING CENTERS+CLUSTERS WITH CONSTRAINED ++ ######
 if args.cluster_type.lower() =='constrained++':
 	centers=[]
 	centers_gold=[]
@@ -189,48 +189,73 @@ if args.cluster_type.lower() =='constrained++':
 	print("CENTERS")
 	print([(c.gold,c.vector) for c in centers])
 	classification1 = KMeans(matrix, N, GOLD, None, args.dist_formula ,centers)
-	classification1.create_empty_clustersPlus() #KMEANS ++
+	classification1.create_empty_clustersPlus('y') #KMEANS ++
 
 	classification2 = KMeans(matrix, N, GOLD, None, args.dist_formula ,centers)
-	classification2.create_empty_clustersPlus() #KMEANS ++
+	classification2.create_empty_clustersPlus('y') #KMEANS ++
 
-########################
-if args.cluster_type.lower() == 'constrained' or 'constrained++':
+#####INITIALISATION OF CLUSTERS FOR CONSTRAINED ##########
+if args.cluster_type.lower() == 'constrained':
 	classification1 = KMeans(matrix, N, GOLD, None, args.dist_formula, None) # on n'a pas encore de centres
 	classification1.create_empty_clusters() # constrainted Kmeans
 	
 	classification2 = KMeans(matrix, N, GOLD, None, args.dist_formula, None) # on n'a pas encore de centres
 	classification2.create_empty_clusters() # constrainted Kmeans
 
-	for i in range(E):
-		for cluster_id in classification1.clusters:
-				classification1.clusters[cluster_id].delete_examples()
-				classification1.clusters[cluster_id].resave_initial_example()
-				#print(classification1.clusters[cluster_id].initial_example)
-		for exo in classification1.examples:
-			distances = []
+######################## CLUSTERING ############################
+
+
+if args.cluster_type.lower() == 'constrained' or 'constrained++':
+	c_centers=[]
+	for i in classification1.centers:
+		c_centers.append(i.vector) #list de centres
+	print(c_centers)
+	tour=0
+	while True:
+		if tour != E:
+			tour+=1
 			for cluster_id in classification1.clusters:
-				if exo != classification1.clusters[cluster_id].initial_example:
-					# print(type(exo.vector))
-					# print(exo.vector)
-					# print(type(classification1.clusters[cluster_id].center))
-					# print(type(classification1.clusters[cluster_id].center.vector))
-					# print(classification1.clusters[cluster_id].center.vector)
-					distances.append(cosine(exo.vector, classification1.clusters[cluster_id].center))
-			minimum_distance = np.argmin(distances)
-			classification1.clusters[minimum_distance].add_example_to_cluster(exo)
-		for cluster_id in classification1.clusters:
-			#print("INITIAL : ", classification1.clusters[cluster_id].initial_example)
-			classification1.clusters[cluster_id].recalculate_center()
-			#print("NEW CENTER ", type(classification1.clusters[cluster_id].center))
-			#print(classification1.clusters[cluster_id].center.vector)
+					classification1.clusters[cluster_id].delete_examples()
+					classification1.clusters[cluster_id].resave_initial_example()
+					#print(classification1.clusters[cluster_id].initial_example)
+			for exo in classification1.examples:
+				distances = []
+				for cluster_id in classification1.clusters:
+					if exo != classification1.clusters[cluster_id].initial_example:
+						# print(type(exo.vector))
+						# print(exo.vector)
+						# print(type(classification1.clusters[cluster_id].center))
+						# print(type(classification1.clusters[cluster_id].center.vector))
+						# print(classification1.clusters[cluster_id].center.vector)
+						distances.append(cosine(exo.vector, classification1.clusters[cluster_id].center))
+				minimum_distance = np.argmin(distances)
+				classification1.clusters[minimum_distance].add_example_to_cluster(exo)
+			new_centers=[]
+			for cluster_id in classification1.clusters:
+				#print("INITIAL : ", classification1.clusters[cluster_id].initial_example)
+				classification1.clusters[cluster_id].recalculate_center()
+				#print("NEW CENTER ", type(classification1.clusters[cluster_id].center))
+				#print(classification1.clusters[cluster_id].center.vector)
+				new_centers.append(classification1.clusters[cluster_id].center)
+			#####SI LES CENTRES CHANGE OU PAS########
+			count=0
+			for i in range(len(c_centers)):
+				if np.all(c_centers[i]==new_centers[i]):
+					count+=1
+			if count == len(c_centers):		
+				break
+
+			c_centers = new_centers
+		else:
+			break
 
 	print("RESULTS 1 : ")
+
 	cluster_dict1={}
 	for i in classification1.clusters:
 		classif1=Counter([exo.gold for exo in classification1.clusters[i].examples])
 		classification1.clusters[i].redefine_id(max(classif1,key=classif1.get)) #id de cluster == gold du centre
-		cluster_dict1["Cluster"+str(i)+"_gold: "+str(classification2.clusters[i].id)]=classif1
+		cluster_dict1["Cluster"+str(i)+"_gold: "+str(classification1.clusters[i].id)]=classif1
 		print("CLUSTER ", i)
 		print(len(classification1.clusters[i].examples))
 		print(classification1.clusters[i].id)
@@ -247,21 +272,40 @@ if args.cluster_type.lower() == 'constrained' or 'constrained++':
 	dfa.to_csv(csv_file)
 
 
-
-
-
 	# variante kmeans 2
-	for i in range(E):
-		distance = classification2.distance_matrix(args.dist_formula)
-		for j in range(len(distance.T)): # on parcourt les exemples ; il faut savoir à quel id des exemples correspond j
-			min_value_index = np.argmin(distance.T[j]) # on trouve l'indice de la valeur min; c'est l'id du CLUSTER
-			exo = matrix[j] # exo à ajouter dans le cluster #min_value_index
-			if exo != classification2.clusters[min_value_index].initial_example :
-				classification2.clusters[min_value_index].add_example_to_cluster(exo) # j = quel id de l'exemple ?
-		for cluster in classification2.clusters:
-			classification2.clusters[cluster].recalculate_center()
 
-			if i < E-1 : # on va supprimer les exemples des clusters jusqu'au dernier run
+	c_centers2=[]
+	for i in classification2.centers:
+		c_centers2.append(i.vector) #list de centres
+	tour2=0
+	while True:
+		if tour2 != E:
+			tour2+=1
+			distance = classification2.distance_matrix(args.dist_formula)
+			for j in range(len(distance.T)): # on parcourt les exemples ; il faut savoir à quel id des exemples correspond j
+				min_value_index = np.argmin(distance.T[j]) # on trouve l'indice de la valeur min; c'est l'id du CLUSTER
+				exo = matrix[j] # exo à ajouter dans le cluster #min_value_index
+				if exo != classification2.clusters[min_value_index].initial_example :
+					classification2.clusters[min_value_index].add_example_to_cluster(exo) # j = quel id de l'exemple ?
+			new_centers2=[]
+			for cluster in classification2.clusters:
+				classification2.clusters[cluster].recalculate_center()
+				new_centers2.append(classification1.clusters[cluster].center)
+
+				
+			#####SI LES CENTRES CHANGE OU PAS########
+			count2=0
+			for i in range(len(c_centers2)):
+				if np.all(c_centers2[i]==new_centers2[i]):
+					count2+=1
+			if count2 == len(c_centers2):		
+				break
+			c_centers2 = new_centers2
+			classification2.clusters[cluster].delete_examples()
+		else:
+			break
+
+
 				classification2.clusters[cluster].delete_examples()
 				#classification2.clusters[cluster].resave_initial_example()
 
@@ -288,30 +332,50 @@ if args.cluster_type.lower() == 'constrained' or 'constrained++':
 	dfa.to_csv(csv_file)
 
 if args.cluster_type.lower() == "++":
-	for i in range(E):
-		for cluster_id in classification1.clusters:
-				classification1.clusters[cluster_id].delete_examples()
-				#if args.cluster_type == "constrained" :
-				#	classification1.clusters[cluster_id].resave_initial_example()
-		for exo in classification1.examples:
-			distances = []
+	c_centers1=[]
+	for i in classification1.centers:
+		c_centers1.append(i.vector) #list de centres
+	print(c_centers1)
+	tour1=0
+	while True:
+		if tour1 != E:
+			tour1+=1
 			for cluster_id in classification1.clusters:
-				#print("INITIAL : ", classification1.clusters[cluster_id].initial_example)
-				if exo != classification1.clusters[cluster_id].initial_example:
-					if args.dist_formula.lower() == 'cosine':
-						distances.append(cosine(exo.vector, classification1.clusters[cluster_id].center))
-					elif args.dist_formula.lower() == 'euclidean':
-						distances.append(euclidean(exo.vector, classification1.clusters[cluster_id].center))
-					else:
-						distances.append(cityblock(exo.vector, classification1.clusters[cluster_id].center))
-			minimum_distance = np.argmin(distances)
-			classification1.clusters[minimum_distance].add_example_to_cluster(exo)
-		for cluster_id in classification1.clusters:
-			classification1.clusters[cluster_id].recalculate_center()
-		#classification1.clusters[cluster].resave_initial_example()
+					classification1.clusters[cluster_id].delete_examples()
+					#if args.cluster_type == "constrained" :
+					#	classification1.clusters[cluster_id].resave_initial_example()
+			for exo in classification1.examples:
+				distances = []
+				for cluster_id in classification1.clusters:
+					#print("INITIAL : ", classification1.clusters[cluster_id].initial_example)
+					if exo != classification1.clusters[cluster_id].initial_example:
+						if args.dist_formula.lower() == 'cosine':
+							distances.append(cosine(exo.vector, classification1.clusters[cluster_id].center))
+						elif args.dist_formula.lower() == 'euclidean':
+							distances.append(euclidean(exo.vector, classification1.clusters[cluster_id].center))
+						else:
+							distances.append(cityblock(exo.vector, classification1.clusters[cluster_id].center))
+				minimum_distance = np.argmin(distances)
+				classification1.clusters[minimum_distance].add_example_to_cluster(exo)
+			new_centers1=[]
+			for cluster_id in classification1.clusters:
+				classification1.clusters[cluster_id].recalculate_center()
+				new_centers1.append(classification1.clusters[cluster_id].center)
+			#####SI LES CENTRES CHANGE OU PAS########
+			count1=0
+			for i in range(len(c_centers1)):
+				if np.all(c_centers1[i]==new_centers1[i]):
+					count1+=1
+			if count1 == len(c_centers1):		
+				break
+			c_centers1 = new_centers1
+		else:
+			break
 
 
 	print("RESULTS 1 : ")
+	list_exemples=[]
+	list_golds=[]	
 	cluster_dict1={}
 	for i in classification1.clusters:
 		classif1=Counter([exo.gold for exo in classification1.clusters[i].examples])
@@ -335,52 +399,3 @@ if args.cluster_type.lower() == "++":
 
 
 
-	# variante kmeans 2
-	for i in range(E):
-		distance = classification2.distance_matrix(args.dist_formula)
-		for j in range(len(distance.T)): # on parcourt les exemples ; il faut savoir à quel id des exemples correspond j
-			min_value_index = np.argmin(distance.T[j]) # on trouve l'indice de la valeur min; c'est l'id du CLUSTER
-			exo = matrix[j] # exo à ajouter dans le cluster #min_value_index
-			if exo != classification2.clusters[min_value_index].initial_example :
-				classification2.clusters[min_value_index].add_example_to_cluster(exo) # j = quel id de l'exemple ?
-		for cluster in classification2.clusters:
-			classification2.clusters[cluster].recalculate_center()
-
-			if i < E-1 : # on va supprimer les exemples des clusters jusqu'au dernier run
-				classification2.clusters[cluster].delete_examples()
-				#classification2.clusters[cluster].resave_initial_example()
-
-	print("RESULTS 2 : ")
-	cluster_dict2={}
-	for i in classification2.clusters:
-		classif2=Counter([exo.gold for exo in classification2.clusters[i].examples])
-		classification2.clusters[i].redefine_id(max(classif2,key=classif2.get)) #id de cluster == la classe le plus nombreaux
-		cluster_dict2["Cluster"+str(i)+"_gold: "+str(classification2.clusters[i].id)]=classif2
-		print("CLUSTER ", i)
-		print(len(classification2.clusters[i].examples))
-		print(classification2.clusters[i].id)
-		print(classif2)
-		print('\t')
-	print(cluster_dict2)
-
-	eval2=evaluate2(classification2.clusters)
-	cluster_dict2['Fscore']=eval2
-	print('Fsore:',eval2)
-
-csv_file="{}.csv".format(folder+'/'+ "KMEANS2_eval") #ECRITURE DES RESULTATS
-dfc = pd.DataFrame(cluster_dict2)
-dfc.to_csv(csv_file)
-
-
-
-
-##########DATA VISUALISATION ############
-plt.rc('font', size=16)
-
-#set style of plots
-sns.set_style('white')
-
-#define a custom palette
-customPalette = ['#630C3A', '#39C8C6', '#D3500C', '#FFB139']
-sns.set_palette(customPalette)
-sns.palplot(customPalette)

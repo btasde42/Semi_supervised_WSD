@@ -116,21 +116,32 @@ class KMeans:
 		self.distance_formula=distance_formula
 		self.examples=examples 
 		self.clusters = {}
-		self.centers=centers
+		if centers != None: 
+			self.centers=centers #si les centres sont donnés
+		else:
+			self.centers=[] #sinon
 
-	def create_empty_clustersPlus(self):
+	def create_empty_clustersPlus(self,ifconstrained):
 		""" Initialisation des clusters selon les centres provient de KMeans++
+		if constrained++ there is initial example
+		else if only Kmeans++ there isn't initial example
 		"""
 		for i in self.centers:
 			#self.clusters[self._ID]=Cluster(i.gold,i.vector,i) #pas de initial exemple
-			self.clusters[self._ID]=Cluster(i.gold,i.vector,i, None)
+			if ifconstrained.lower()=='y':
+				self.clusters[self._ID]=Cluster(i.gold[0],i.vector,i,i)
+			else:
+				self.clusters[self._ID]=Cluster(i.gold[0],i.vector,i,None)
 			self._ID+=1
+		return self.clusters
+
 
 	def create_empty_clusters(self):
 		""" on initialis les k cluster avec le centre et un exemple
 		"""
 		# avant d'appliquer cette méthode il faut faire shuffle des exemples
 		print("GOLD = ", self.gold)
+		centers=[]
 		for g in self.gold:
 			print(type(g))
 			for i in range(len(self.examples)):
@@ -138,6 +149,7 @@ class KMeans:
 				if int(self.examples[i].gold[0]) == g:
 					#print("TRUE")
 					self.clusters[self._ID] = Cluster(g, self.examples[i].vector, self.examples[i], self.examples[i]) # à changer ensuite gold -> int 
+					self.centers.append(self.examples[i])
 					#print("initial ", self.clusters[self._ID].initial_example)
 					self._ID+=1
 					#print(i)
