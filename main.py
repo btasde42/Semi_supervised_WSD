@@ -127,11 +127,24 @@ N = len(senses.keys()) # le nb de clusters souhaité
 GOLD = senses.keys() # les numéros des sens, les classes gold
 print(N)
 
+data_points=[]
+gold_points=[]
+len_vects=len(matrix[1].vector)
+for i in matrix:
+	data_points.append(i.vector)
+	gold_points.append(i.gold)
+
+df = pd.DataFrame.from_records(data_points,columns=['x','y'])
+df['labels']=gold_points
+#print(df)
+
+#plot data with seaborn
+
 ###INITIALIZING CENTERS+CLUSTERS WITH Kmeans++ ####
 if args.cluster_type.lower() =='++' :
 	centers=[]
 	i=rd.randint(0,len(matrix))
-	print("I = ", i)
+	#print("I = ", i)
 	center= examples.get_Ovector_by_id(i) #on rajoute une premier vector aléatoire comme centre
 	#print("FIRST CENTER = ", center.vector)
 	centers.append(center)
@@ -159,6 +172,8 @@ if args.cluster_type.lower() =='++' :
 	classification2 = KMeans(matrix, N, GOLD, None, args.dist_formula ,centers)
 	classification2.create_empty_clustersPlus('n') #KMEANS ++
 
+
+
 ### INITIALIZING CENTERS+CLUSTERS WITH CONSTRAINED ++ ######
 if args.cluster_type.lower() =='constrained++':
 	centers=[]
@@ -180,12 +195,13 @@ if args.cluster_type.lower() =='constrained++':
 		r=rd.random()
 		i=0
 		for j,p in enumerate(cumul_proba):
-			if r<p and examples.get_Ovector_by_id(j).gold not in centers_gold:
-				i=j
-				break
-		centers.append(examples.get_Ovector_by_id(i))
-		centers_gold.append(examples.get_Ovector_by_id(i).gold)
-
+			if r<p: 
+				if examples.get_Ovector_by_id(j).gold not in centers_gold:
+					i=j
+					break
+		centers.append(examples.get_Ovector_by_id(j))
+		centers_gold.append(examples.get_Ovector_by_id(j).gold)
+		#print(centers_gold)
 	print("CENTERS")
 	print([(c.gold,c.vector) for c in centers])
 	classification1 = KMeans(matrix, N, GOLD, None, args.dist_formula ,centers)
@@ -193,6 +209,18 @@ if args.cluster_type.lower() =='constrained++':
 
 	classification2 = KMeans(matrix, N, GOLD, None, args.dist_formula ,centers)
 	classification2.create_empty_clustersPlus('y') #KMEANS ++
+	
+
+	#######VISUALISE CENTERS ################
+	center_vectors=[c.vector for c in centers]
+	center_pd=pd.DataFrame.from_records(center_vectors,columns=['x','y'])
+	center_pd['golds']=centers_gold
+
+	facet = sns.lmplot(data=df, x='x', y='y', hue='labels', fit_reg=False, legend=True, legend_out=True)
+	centers_points= sns.lmplot(data=center_pd, x='x', y='y', hue='golds', fit_reg=False, legend=True, legend_out=True,scatter_kws={"s": 100})
+
+	plt.show()
+
 
 #####INITIALISATION OF CLUSTERS FOR CONSTRAINED ##########
 if args.cluster_type.lower() == 'constrained':
@@ -403,7 +431,6 @@ if args.cluster_type.lower() == "++":
 	csv_file="{}.csv".format(folder+'/'+ "KMEANS1_eval") #ECRITURE DES RESULTATS
 	dfa = pd.DataFrame(cluster_dict1)
 	dfa.to_csv(csv_file)
-
 
 
 
