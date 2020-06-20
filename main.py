@@ -25,6 +25,7 @@ parser.add_argument("--fusion_method",help="La methode de fusion pour differents
 parser.add_argument("--linear_method", help='somme ou moyenne pour fusionner les traits de linear')
 parser.add_argument("--dim",help="La taille de dimention reduit pour les vecteurs de verbe")
 parser.add_argument("--cluster_type",help="le type de clustering kmeans : basic, constrained, ++, constrained++ ")
+parser.add_argument("--tfidf", help="la pondération des mots du contextes : y / n")
 
 args = parser.parse_args()
 
@@ -53,9 +54,14 @@ with open(csv_file, 'w') as outfile:
 	w.writeheader()
 	w.writerow(vars(args))
 
-vectors_syntx,num_senses,vectors_linear=read_conll(file_conll, file_gold, file_ids, args.n,args.inventaire,args.linear_method)
+vectors_syntx,num_senses,vectors_linear,phrases=read_conll(file_conll, file_gold, file_ids, args.n,args.inventaire,args.linear_method)
 
+# On ne prend que 5 premiers traits des vecteurs syntaxiques car marchent le mieux
+vectors_syntx = vectors_syntx[:, :5]
 
+# pondération tf-idf
+if args.tfidf.lower() == "y" :
+	vectors_linear = tfidf(phrases, args.linear_method)
 
 if len(args.traits)==1: #s'il y a pas les deux traits démandé mais qu'un seul
 	if args.traits[0].lower() =='syntx':
