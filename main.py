@@ -306,13 +306,12 @@ if args.cluster_type.lower() == 'constrained' or 'constrained++':
 			break
 
 
-				classification2.clusters[cluster].delete_examples()
-				#classification2.clusters[cluster].resave_initial_example()
-
 	print("RESULTS 2 : ")
 	cluster_dict2={}
 	for i in classification2.clusters:
+		print(i)
 		classif2=Counter([exo.gold for exo in classification2.clusters[i].examples])
+		print(classif2)
 		classification2.clusters[i].redefine_id(max(classif2,key=classif2.get)) #id de cluster == la classe le plus nombreaux
 		cluster_dict2["Cluster"+str(i)+"_gold: "+str(classification2.clusters[i].id)]=classif2
 		print("CLUSTER ", i)
