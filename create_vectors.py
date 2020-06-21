@@ -53,7 +53,8 @@ def read_conll(conll, gold, tok_ids, n, inventaire,method=None):
 		list_keys.append(lemme+'_'+str(i)) #on met les nombres sur chaque lemme abattre de type abattre_1...abattre_160
 
 		####linear POUR L'EXEMPLE i###
-		linear=create_linear_ids(lines_phrase,verb_index,tok_ids,n) #creer fenetre de n
+		linear=create_linear_ids(lines_phrase,lemme,tok_ids,n) #creer fenetre de n
+		#print(linear)
 		#*****************
 		#LINEAR_tfidf.append(' '.join(linear))
 		#********************
@@ -216,7 +217,7 @@ def tfidf(phrases, method) :
 				vector_n_i.append(vec_zeros)
 		if method != None :
 			if method.lower() == 'somme':
-				vector_n_i=np.add(vector_n_i, axis=0)
+				vector_n_i=np.vstack(vector_n_i).sum(axis=0)
 			if method.lower() == 'moyenne':
 				vector_n_i=np.mean(vector_n_i, axis=0)
 			if method.lower() == 'concat':

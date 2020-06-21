@@ -120,7 +120,7 @@ else: #si on demande tous les deux traits linear et syntx
 			examples.set_vector_to_matrix(vector)
 
 
-E = 120# nombre d'époques pour tourner l'algo
+E = 200# nombre d'époques pour tourner l'algo
 
 
 
@@ -133,17 +133,17 @@ N = len(senses.keys()) # le nb de clusters souhaité
 GOLD = senses.keys() # les numéros des sens, les classes gold
 print(N)
 
-#data_points=[]
-#gold_points=[]
-#len_vects=len(matrix[1].vector)
-#for i in matrix:
-	#data_points.append(i.vector)
-	#gold_points.append(i.gold)
+data_points=[]
+gold_points=[]
+len_vects=len(matrix[1].vector)
+for i in matrix:
+	data_points.append(i.vector)
+	gold_points.append(i.gold)
 
-#df = pd.DataFrame.from_records(data_points,columns=['x','y'])
-#df['labels']=gold_points
-#print(df)
-
+"""df = pd.DataFrame.from_records(data_points,columns=['x','y'])
+df['labels']=gold_points
+print(df)
+"""
 #plot data with seaborn
 
 ###INITIALIZING CENTERS+CLUSTERS WITH Kmeans++ ####
@@ -217,15 +217,15 @@ if args.cluster_type.lower() =='constrained++':
 	classification2.create_empty_clustersPlus('y') #KMEANS ++
 	
 
-	"""#######VISUALISE CENTERS ################
-				center_vectors=[c.vector for c in centers]
-				center_pd=pd.DataFrame.from_records(center_vectors,columns=['x','y'])
-				center_pd['golds']=centers_gold
+#######VISUALISE CENTERS ################
+"""center_vectors=[c.vector for c in centers]
+center_pd=pd.DataFrame.from_records(center_vectors,columns=['x','y'])
+center_pd['golds']=centers_gold
 			
-				facet = sns.lmplot(data=df, x='x', y='y', hue='labels', fit_reg=False, legend=True, legend_out=True)
-				centers_points= sns.lmplot(data=center_pd, x='x', y='y', hue='golds', fit_reg=False, legend=True, legend_out=True,scatter_kws={"s": 100})
+facet = sns.lmplot(data=df, x='x', y='y', hue='labels', fit_reg=False, legend=True, legend_out=True)
+#centers_points= sns.lmplot(data=center_pd, x='x', y='y', hue='golds', fit_reg=False, legend=True, legend_out=True,scatter_kws={"s": 100})
 			
-				plt.show()"""
+plt.show()"""
 
 
 #####INITIALISATION OF CLUSTERS FOR CONSTRAINED ##########
