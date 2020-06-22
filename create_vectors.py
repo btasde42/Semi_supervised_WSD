@@ -8,6 +8,7 @@ from sklearn import decomposition
 from word_embed import *
 from sklearn.preprocessing import StandardScaler
 from sklearn.feature_extraction.text import TfidfVectorizer
+from collections import defaultdict
 
 def read_conll(conll, gold, tok_ids, n, inventaire, iftfidf,method=None):
 	"""la fonction qui lit le fichier conll et renvoie la matrice dont chaque ligne représente une occurrence du verbe
@@ -114,7 +115,11 @@ def read_conll(conll, gold, tok_ids, n, inventaire, iftfidf,method=None):
 	
 	vectors_syntx,num_senses=read_inventaire(inventaire, vectors, sujet, objet,lemme)
 	if iftfidf.lower() == "y":
-		linear_vectors = tfidf(phrases, linear_window, linear_vectors, method)
+		linear_vectors = tfidf2(phrases, linear_window, linear_vectors, method)
+	#*************************
+	#print(phrases2[:3])
+	#tfidf2(phrases, linear_window, linear_vectors, method)
+	#*************************
 	return vectors_syntx,num_senses, linear_vectors, phrases
 
 def read_inventaire (inventaire, vectors, sujet, objet,lemme):
@@ -194,9 +199,50 @@ def tfidf(phrases, linear_window, linear_vectors, method) :
 			if mot in vocabulary:
 				idx = vocabulary.index(mot.lower())
 				weight = vectors_tfidf[i,idx]
+				if mot == "avoir":
+					print("WEIGHT AVOIR ", weight)
 				linear_vectors[i][j] = linear_vectors[i][j]*weight
 			else :
-				print("mot ", mot, "n'est pas trouvé")
+				#print("mot ", mot, "n'est pas trouvé")
+				linear_vectors[i][j] = np.zeros(100, float)
+		if method != None :
+			if method.lower() == 'somme':
+				linear_vectors[i]=np.vstack(linear_vectors[i]).sum(axis=0)
+			if method.lower() == 'moyenne':
+				linear_vectors[i]=np.mean(linear_vectors[i], axis=0)
+			if method.lower() == 'concat':
+				linear_vectors[i]=np.concatenate(linear_vectors[i])
+	return linear_vectors
+
+def tfidf2 (phrases, linear_window, linear_vectors, method):
+	count_words = defaultdict(int)
+	for phrase in phrases:
+		for word in phrase.split():
+			#print(word)
+			count_words[word]+=1
+	count_doc_words = defaultdict(int)
+	tfidf = defaultdict(int)
+	for word in count_words:
+		tf = 0.0
+		idf = 0.0
+		tf = count_words[word]/sum(count_words.values())
+		for phrase in phrases:
+			if word in phrase.split():
+				count_doc_words[word]+=1
+		idf = len(phrases)/count_doc_words[word]
+		tfidf[word] = tf*idf
+	for i in range(len(linear_window)) :
+		for j in range(len(linear_window[i])):
+			mot = linear_window[i][j]
+			if mot in tfidf.keys():
+				#idx = vocabulary.index(mot.lower())
+				#weight = vectors_tfidf[i,idx]
+				weight = tfidf[mot]
+				if mot == "avoir":
+					print("WEIGHT AVOIR ", weight)
+				linear_vectors[i][j] = linear_vectors[i][j]*weight
+			else :
+				#print("mot ", mot, "n'est pas trouvé")
 				linear_vectors[i][j] = np.zeros(100, float)
 		if method != None :
 			if method.lower() == 'somme':
