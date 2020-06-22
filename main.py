@@ -1,3 +1,4 @@
+import sys
 import datetime
 import csv
 from create_vectors import *
@@ -17,13 +18,13 @@ parser.add_argument('conll', help = 'le fichier conll full path')
 parser.add_argument('gold', help = 'le fichier classe gold full path')
 parser.add_argument('tok_ids', help = 'fichier tokens ids full path')
 parser.add_argument("inventaire", help = 'inventaire de sens full path')
-parser.add_argument("--dist_formula", help='Name a distance formula between cosine / euclidean/ cityblock (==manatthan)')
-parser.add_argument("--r",help='Y ou N selon si on veut reduire les vecteurs, IMPORTANT: #si on applique pas la reduction, fusion_method doit etre moyenne ou concat')
-parser.add_argument("--traits",nargs='+',help="List des traits qu'on veut utiliser. [syntx,linear]")
-parser.add_argument("--n",type=int, help='la taille de contexte pour les linears. Optionelle.')
-parser.add_argument("--fusion_method",help="La methode de fusion pour differents types des vecteurs de traits s'il y en a plusieurs")
-parser.add_argument("--linear_method", help='somme ou moyenne pour fusionner les traits de linear')
-parser.add_argument("--dim",help="La taille de dimention reduit pour les vecteurs de verbe")
+parser.add_argument("--dist_formula", help='la formule du calcul de la distance : cosine / euclidean/ cityblock (==manatthan)')
+parser.add_argument("--r",help="Entrez Y ou N s'il faut reduire les vecteurs, IMPORTANT: #si on applique pas la reduction, fusion_method doit etre moyenne ou concat")
+parser.add_argument("--traits",nargs='+',help="la liste des traits à utiliser : syntx et/ou linear ")
+parser.add_argument("--n",type=int, help='la taille de la fenêtre de contexte pour les traits linéaires')
+parser.add_argument("--fusion_method",help="La méthode de fusion pour differents types des vecteurs de traits s'il y en a plusieurs")
+parser.add_argument("--linear_method", help='la méthode de fusion des traits linéaires : somme / moyenne')
+parser.add_argument("--dim",help="La taille de dimension reduite des vecteurs du verbe")
 parser.add_argument("--cluster_type",help="le type de clustering kmeans : constrained, kmeans++, constrained++ ")
 parser.add_argument("--tfidf", help="la pondération des mots du contextes : y / n")
 
@@ -31,13 +32,36 @@ args = parser.parse_args()
 
 
 verbes = ["abattre", "aborder", "affecter", "comprendre", "compter"]
-# on s'assure que les fichiers correspondent au verbe sélectionné
-assert args.verbe in verbes
-assert args.verbe in args.conll 
-assert args.verbe in args.gold
-assert args.verbe in args.tok_ids
+possible_fusion = ["somme", "moyenne", "concat"]
+possible_clusters = ["constrained", "++", "constrained++"]
+possible_formula = ["cosine", "euclidean", "cityblock"]
+yn = ["y", "n"]
 
+assert args.verbe in verbes, "verbe inconnu"
+assert args.verbe in args.conll, "verbe ou fichier conll incorrect"
+assert args.verbe in args.gold, "verbe ou fichier gold incorrect"
+assert args.verbe in args.tok_ids, "verbe ou fichier tok_ids incorrect"
+if len(args.traits) == 2:
+	assert args.fusion_method in possible_fusion, "méthode de fusion incorrecte, choisissez parmi : somme, moyenne, concat"
+assert args.linear_method in possible_fusion, "méthode de fusion incorrecte, choisissez parmi : somme, moyenne, concat"
+assert args.r in yn, "choisissez s'il faut faire la réduction ou non : --r y / n"
+assert args.tfidf, "choisissez s'il fait faire la pondération tfidf : --tfidf y / n"
+assert args.cluster_type in possible_clusters, "type de clustering incorrect, choisissez parmi : constrained, ++, constrained++ "
 
+if args.r == "y":
+	try:
+		int(args.dim)
+	except ValueError :
+		print("la dimension doit être un int : --dim 5")
+		sys.exit()
+	except TypeError:
+		print("la dimension doit être un int : --dim 5")
+		sys.exit()
+
+if len(args.traits) == 2:
+	if args.fusion_method == "somme" or args.fusion_method == "moyenne":
+		assert args.r == "y", "pour fusionner les traits syntaxiques et linéaires il faut réduire la taille des vecteurs : --r y"
+		assert int(args.dim) <= 5, "la taille des traits syntaxiques et linéaires doit être inférieure ou égale à 5 : --r y --dim 5"
 
 with open(args.conll) as file:
 	file_conll = file.read()
@@ -58,10 +82,6 @@ vectors_syntx,num_senses,vectors_linear,phrases=read_conll(file_conll, file_gold
 
 # On ne prend que 5 premiers traits des vecteurs syntaxiques car marchent le mieux
 vectors_syntx = vectors_syntx[:, :5]
-
-# pondération tf-idf
-# if args.tfidf.lower() == "y" :
-# 	vectors_linear = tfidf(phrases, args.linear_method)
 
 if len(args.traits)==1: #s'il y a pas les deux traits démandé mais qu'un seul
 	if args.traits[0].lower() =='syntx':
@@ -444,5 +464,3 @@ if args.cluster_type.lower() == "constrained" or "constrained++":
 	csv_file="{}.csv".format(folder+'/'+ "KMEANS2_eval") #ECRITURE DES RESULTATS
 	dfa = pd.DataFrame(cluster_dict2)
 	dfa.to_csv(csv_file)
-
-
