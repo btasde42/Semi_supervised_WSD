@@ -9,7 +9,7 @@ from word_embed import *
 from sklearn.preprocessing import StandardScaler
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-def read_conll(conll, gold, tok_ids, n, inventaire,method=None):
+def read_conll(conll, gold, tok_ids, n, inventaire, iftfidf,method=None):
 	"""la fonction qui lit le fichier conll et renvoie la matrice dont chaque ligne représente une occurrence du verbe
 	conll - corpus au format conll
 	gold - fichier avec les classes gold
@@ -65,7 +65,9 @@ def read_conll(conll, gold, tok_ids, n, inventaire,method=None):
 			else: #sinon
 				vec_zeros = np.zeros(100, float) # à vérifier la taille des vecteurs
 				vector_n_i.append(vec_zeros)
-		if method != None: #si linear demandée
+		#print("VECTOR_N_I ", vector_n_i)
+		if iftfidf.lower() != "y" and method != None: #si linear demandée
+			print("TF-IDF FALSE ")
 			if method.lower() == 'somme':
 				vector_n_i=np.vstack(vector_n_i).sum(axis=0)
 			if method.lower() == 'moyenne':
@@ -124,7 +126,17 @@ def read_conll(conll, gold, tok_ids, n, inventaire,method=None):
 			vectors[i][6] = dist_obj[i]
 	
 	vectors_syntx,num_senses=read_inventaire(inventaire, vectors, sujet, objet,lemme)
+	# ***********************
+	#print("LINEAR VECTORS ", linear_vectors[0])
+	#print("LEN LINEAR VECTORS ", len(linear_vectors))
+	if iftfidf.lower() == "y":
+	#	print("TF-IDF TRUE")
+		linear_vectors = tfidf(phrases, method)
+		#linear_vectors = linear_fusion(linear_vectors, )
+	#print("NEW LINEAR VECTORS ", linear_vectors[0])
+	#print("NEW LEN ", len(linear_vectors))
 
+	#**************************
 	return vectors_syntx,num_senses, linear_vectors, phrases
 
 def read_inventaire (inventaire, vectors, sujet, objet,lemme):
@@ -156,7 +168,6 @@ def reduce_dimension(vectors,name_type,verbe,dimention):
 	Args:
 		vectors: np array
 		name_type: change by the type of vectors
-
 	"""
 	# Réduction de dimentionalité
 	# noramlisation

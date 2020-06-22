@@ -54,7 +54,7 @@ with open(csv_file, 'w') as outfile:
 	w.writeheader()
 	w.writerow(vars(args))
 
-vectors_syntx,num_senses,vectors_linear,phrases=read_conll(file_conll, file_gold, file_ids, args.n,args.inventaire,args.linear_method)
+vectors_syntx,num_senses,vectors_linear,phrases=read_conll(file_conll, file_gold, file_ids, args.n,args.inventaire,args.tfidf, args.linear_method)
 
 # On ne prend que 5 premiers traits des vecteurs syntaxiques car marchent le mieux
 vectors_syntx = vectors_syntx[:, :5]
@@ -437,6 +437,3 @@ if args.cluster_type.lower() == "++":
 	csv_file="{}.csv".format(folder+'/'+ "KMEANS1_eval") #ECRITURE DES RESULTATS
 	dfa = pd.DataFrame(cluster_dict1)
 	dfa.to_csv(csv_file)
-
-
-
