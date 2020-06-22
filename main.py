@@ -24,7 +24,7 @@ parser.add_argument("--n",type=int, help='la taille de contexte pour les linears
 parser.add_argument("--fusion_method",help="La methode de fusion pour differents types des vecteurs de traits s'il y en a plusieurs")
 parser.add_argument("--linear_method", help='somme ou moyenne pour fusionner les traits de linear')
 parser.add_argument("--dim",help="La taille de dimention reduit pour les vecteurs de verbe")
-parser.add_argument("--cluster_type",help="le type de clustering kmeans : basic, constrained, ++, constrained++ ")
+parser.add_argument("--cluster_type",help="le type de clustering kmeans : constrained, kmeans++, constrained++ ")
 parser.add_argument("--tfidf", help="la pondération des mots du contextes : y / n")
 
 args = parser.parse_args()
@@ -131,7 +131,7 @@ senses = Counter(int(line) for line in file_gold)
 print("SENSES ", senses)
 N = len(senses.keys()) # le nb de clusters souhaité
 GOLD = senses.keys() # les numéros des sens, les classes gold
-print(N)
+#print(N)
 
 data_points=[]
 gold_points=[]
@@ -147,7 +147,7 @@ print(df)
 #plot data with seaborn
 
 ###INITIALIZING CENTERS+CLUSTERS WITH Kmeans++ ####
-if args.cluster_type.lower() =='++' :
+if args.cluster_type.lower() =='kmeans++' :
 	centers=[]
 	i=rd.randint(0,len(matrix))
 	#print("I = ", i)
@@ -180,7 +180,7 @@ if args.cluster_type.lower() =='++' :
 
 
 
-### INITIALIZING CENTERS+CLUSTERS WITH CONSTRAINED ++ ######
+### INITIALIZING CENTERS+CLUSTERS WITH CONSTRAINED++ ######
 if args.cluster_type.lower() =='constrained++':
 	centers=[]
 	centers_gold=[]
@@ -240,12 +240,82 @@ if args.cluster_type.lower() == 'constrained':
 
 ######################## CLUSTERING ############################
 
+############ KMEANS++ ###########
 
-if args.cluster_type.lower() == 'constrained' or 'constrained++':
+if args.cluster_type.lower() == "kmeans++":
+	print("KMEANS++")
+	c_centers1=[]
+	for i in classification1.centers:
+		c_centers1.append(i.vector) #list de centres
+	#print(c_centers1)
+	tour1=0
+	while True:
+		if tour1 != E:
+			tour1+=1
+			for cluster_id in classification1.clusters:
+					classification1.clusters[cluster_id].delete_examples()
+					classification1.clusters[cluster_id].resave_initial_example()
+			for exo in classification1.examples:
+				distances = []
+				for cluster_id in classification1.clusters:
+					#print("INITIAL : ", classification1.clusters[cluster_id].initial_example)
+					if exo != classification1.clusters[cluster_id].initial_example:
+						if args.dist_formula.lower() == 'cosine':
+							distances.append(cosine(exo.vector, classification1.clusters[cluster_id].center))
+						elif args.dist_formula.lower() == 'euclidean':
+							distances.append(euclidean(exo.vector, classification1.clusters[cluster_id].center))
+						else:
+							distances.append(cityblock(exo.vector, classification1.clusters[cluster_id].center))
+				minimum_distance = np.argmin(distances)
+				classification1.clusters[minimum_distance].add_example_to_cluster(exo)
+			new_centers1=[]
+			for cluster_id in classification1.clusters:
+				classification1.clusters[cluster_id].recalculate_center()
+				new_centers1.append(classification1.clusters[cluster_id].center)
+			#####SI LES CENTRES CHANGE OU PAS########
+			count=0
+			for i in range(len(c_centers)):
+				if np.all(c_centers[i]==new_centers[i]):
+					count+=1
+			if count == len(c_centers):		
+				break
+			else:
+				c_centers = new_centers
+				new_centers2=[]
+		else:
+			break
+
+	print("RESULTS 1 : ")
+	list_exemples=[]
+	list_golds=[]	
+	cluster_dict1={}
+	for i in classification1.clusters:
+		classif1=Counter([exo.gold for exo in classification1.clusters[i].examples])
+		classification1.clusters[i].redefine_id(max(classif1,key=classif1.get)) #id de cluster == la classe le plus nombreaux
+		cluster_dict1["Cluster"+str(i)+"_gold: "+str(classification2.clusters[i].id)]=classif1
+		print("CLUSTER ", i)
+		print(len(classification1.clusters[i].examples))
+		print(classification1.clusters[i].id)
+		print(classif1)
+		print('\t')
+	print(cluster_dict1)
+
+	eval1=evaluate2(classification1.clusters)
+	cluster_dict1["Fscore"]=eval1
+	print("Fscore: ",eval1)
+
+	csv_file="{}.csv".format(folder+'/'+ "KMEANS1_eval") #ECRITURE DES RESULTATS
+	dfa = pd.DataFrame(cluster_dict1)
+	dfa.to_csv(csv_file)
+
+###########CONSTRAINED ET CONSTRAINED++ #######################
+
+if args.cluster_type.lower() == "constrained" or "constrained++":
+	print("CONSTRAINED")
 	c_centers=[]
 	for i in classification1.centers:
 		c_centers.append(i.vector) #list de centres
-	print(c_centers)
+	#print(c_centers)
 	tour=0
 	while True:
 		if tour != E:
@@ -375,67 +445,4 @@ if args.cluster_type.lower() == 'constrained' or 'constrained++':
 	dfa = pd.DataFrame(cluster_dict2)
 	dfa.to_csv(csv_file)
 
-if args.cluster_type.lower() == "++":
-	c_centers1=[]
-	for i in classification1.centers:
-		c_centers1.append(i.vector) #list de centres
-	print(c_centers1)
-	tour1=0
-	while True:
-		if tour1 != E:
-			tour1+=1
-			for cluster_id in classification1.clusters:
-					classification1.clusters[cluster_id].delete_examples()
-					#if args.cluster_type == "constrained" :
-					#	classification1.clusters[cluster_id].resave_initial_example()
-			for exo in classification1.examples:
-				distances = []
-				for cluster_id in classification1.clusters:
-					#print("INITIAL : ", classification1.clusters[cluster_id].initial_example)
-					if exo != classification1.clusters[cluster_id].initial_example:
-						if args.dist_formula.lower() == 'cosine':
-							distances.append(cosine(exo.vector, classification1.clusters[cluster_id].center))
-						elif args.dist_formula.lower() == 'euclidean':
-							distances.append(euclidean(exo.vector, classification1.clusters[cluster_id].center))
-						else:
-							distances.append(cityblock(exo.vector, classification1.clusters[cluster_id].center))
-				minimum_distance = np.argmin(distances)
-				classification1.clusters[minimum_distance].add_example_to_cluster(exo)
-			new_centers1=[]
-			for cluster_id in classification1.clusters:
-				classification1.clusters[cluster_id].recalculate_center()
-				new_centers1.append(classification1.clusters[cluster_id].center)
-			#####SI LES CENTRES CHANGE OU PAS########
-			count1=0
-			for i in range(len(c_centers1)):
-				if np.all(c_centers1[i]==new_centers1[i]):
-					count1+=1
-			if count1 == len(c_centers1):		
-				break
-			c_centers1 = new_centers1
-		else:
-			break
 
-
-	print("RESULTS 1 : ")
-	list_exemples=[]
-	list_golds=[]	
-	cluster_dict1={}
-	for i in classification1.clusters:
-		classif1=Counter([exo.gold for exo in classification1.clusters[i].examples])
-		classification1.clusters[i].redefine_id(max(classif1,key=classif1.get)) #id de cluster == la classe le plus nombreaux
-		cluster_dict1["Cluster"+str(i)+"_gold: "+str(classification2.clusters[i].id)]=classif1
-		print("CLUSTER ", i)
-		print(len(classification1.clusters[i].examples))
-		print(classification1.clusters[i].id)
-		print(classif1)
-		print('\t')
-	print(cluster_dict1)
-
-	eval1=evaluate2(classification1.clusters)
-	cluster_dict1["Fscore"]=eval1
-	print("Fscore: ",eval1)
-
-	csv_file="{}.csv".format(folder+'/'+ "KMEANS1_eval") #ECRITURE DES RESULTATS
-	dfa = pd.DataFrame(cluster_dict1)
-	dfa.to_csv(csv_file)
