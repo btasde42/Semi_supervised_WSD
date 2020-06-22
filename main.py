@@ -60,8 +60,8 @@ vectors_syntx,num_senses,vectors_linear,phrases=read_conll(file_conll, file_gold
 vectors_syntx = vectors_syntx[:, :5]
 
 # pondération tf-idf
-if args.tfidf.lower() == "y" :
-	vectors_linear = tfidf(phrases, args.linear_method)
+# if args.tfidf.lower() == "y" :
+# 	vectors_linear = tfidf(phrases, args.linear_method)
 
 if len(args.traits)==1: #s'il y a pas les deux traits démandé mais qu'un seul
 	if args.traits[0].lower() =='syntx':
@@ -194,6 +194,8 @@ if args.cluster_type.lower() =='constrained++':
 		distance=np.array([])
 		for x in matrix: #chaque exemple dans l'espace
 			point=x.vector
+			#print("POINT LEN", point.shape)
+			#print("CENTER ", center.vector.shape)
 			distance=np.append(distance,np.min(np.sum((point-center.vector)**2)))
 		
 		proba=distance/np.sum(distance)
@@ -255,7 +257,7 @@ if args.cluster_type.lower() == 'constrained' or 'constrained++':
 			for exo in classification1.examples:
 				distances = []
 				for cluster_id in classification1.clusters:
-					if exo != classification1.clusters[cluster_id].initial_example:
+					if exo != classification1.clusters[cluster_id].initial_example :
 						# print(type(exo.vector))
 						# print(exo.vector)
 						# print(type(classification1.clusters[cluster_id].center))

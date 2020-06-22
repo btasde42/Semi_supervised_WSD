@@ -26,14 +26,8 @@ def read_conll(conll, gold, tok_ids, n, inventaire, iftfidf,method=None):
 	dist_suj = {}
 	dist_obj = {}
 	list_keys=[]
-	#*****************
-	# A SUPPRIMER ENSUITE !!!!!!!
-
-	#LINEAR_tfidf = []
 	phrases = []
-	# FIN DE SUPPRESSION
-	#*****************
-	#mot_nul = "nul"
+	linear_window = []
 	dict_mots_vec=get_linear_vectors()
 	linear_vectors = [] # # liste des linears
 	#linearmes = n mots (le nb de mots de contexte est passé en paramètre) avant et après le verbe ambigu (le verbe lui-même n'y est pas inclu)
@@ -43,21 +37,14 @@ def read_conll(conll, gold, tok_ids, n, inventaire, iftfidf,method=None):
 		dependents = []
 		verb_index = int(tok_ids[i])
 		lines_phrase = conll[i].split('\n')
-		#**********************
-		#phrases[i].append(lines_phrase.split('\t')[2])
 		phrase =' '.join([mot.split('\t')[2].lower() for mot in lines_phrase])
 		phrases.append(phrase)
-		#print("PHRASE = ", phrase)
-		#**************************
 		lemme = lines_phrase[verb_index-1].split('\t')[2] # abattre lemme
 		list_keys.append(lemme+'_'+str(i)) #on met les nombres sur chaque lemme abattre de type abattre_1...abattre_160
 
 		####linear POUR L'EXEMPLE i###
 		linear=create_linear_ids(lines_phrase,lemme,tok_ids,n) #creer fenetre de n
-		#print(linear)
-		#*****************
-		#LINEAR_tfidf.append(' '.join(linear))
-		#********************
+		linear_window.append(linear)
 		vector_n_i=[]
 		for j in linear:
 			if j.lower() in dict_mots_vec: #si le mot se trouve dans le fichier vecteurs
@@ -65,9 +52,7 @@ def read_conll(conll, gold, tok_ids, n, inventaire, iftfidf,method=None):
 			else: #sinon
 				vec_zeros = np.zeros(100, float) # à vérifier la taille des vecteurs
 				vector_n_i.append(vec_zeros)
-		#print("VECTOR_N_I ", vector_n_i)
 		if iftfidf.lower() != "y" and method != None: #si linear demandée
-			print("TF-IDF FALSE ")
 			if method.lower() == 'somme':
 				vector_n_i=np.vstack(vector_n_i).sum(axis=0)
 			if method.lower() == 'moyenne':
@@ -76,6 +61,7 @@ def read_conll(conll, gold, tok_ids, n, inventaire, iftfidf,method=None):
 				vector_n_i=np.concatenate(vector_n_i)
 	
 		linear_vectors.append(vector_n_i)
+
 		############
 		for j,line in enumerate(lines_phrase):
 
@@ -109,6 +95,7 @@ def read_conll(conll, gold, tok_ids, n, inventaire, iftfidf,method=None):
 		elif lines_phrase[verb_index-1].split('\t')[4] == "VPR":
 			fonction[i] = 3
 	vectors = np.zeros((len(tok_ids), 19), float) # à vérifier la taille des vecteurs
+
 	for i in range(len(tok_ids)):
 		if i in suj_animé.keys():
 			vectors[i][0] = suj_animé[i]
@@ -126,17 +113,8 @@ def read_conll(conll, gold, tok_ids, n, inventaire, iftfidf,method=None):
 			vectors[i][6] = dist_obj[i]
 	
 	vectors_syntx,num_senses=read_inventaire(inventaire, vectors, sujet, objet,lemme)
-	# ***********************
-	#print("LINEAR VECTORS ", linear_vectors[0])
-	#print("LEN LINEAR VECTORS ", len(linear_vectors))
 	if iftfidf.lower() == "y":
-	#	print("TF-IDF TRUE")
-		linear_vectors = tfidf(phrases, method)
-		#linear_vectors = linear_fusion(linear_vectors, )
-	#print("NEW LINEAR VECTORS ", linear_vectors[0])
-	#print("NEW LEN ", len(linear_vectors))
-
-	#**************************
+		linear_vectors = tfidf(phrases, linear_window, linear_vectors, method)
 	return vectors_syntx,num_senses, linear_vectors, phrases
 
 def read_inventaire (inventaire, vectors, sujet, objet,lemme):
@@ -198,40 +176,33 @@ def fusion_traits(traits_syntaxique,traits_linear,method): #comment on va fusion
 			print(type(traits_syntaxique))
 			print(np.mean(traits_syntaxique, traits_linear))
 			return np.mean(np.array([traits_syntaxique, traits_linear]),axis=0) # un vecteur moyen de taille réduite (après la réduction avec ACP)
-		if method.lower() == 'concetanation' :
+		if method.lower() == 'concat':
 			return np.concatenate(traits_syntaxique,traits_linear)
 
-def tfidf(phrases, method) :
-	linear_vectors = []
-	vector_n_i=[]
-	dict_mots_vec=get_linear_vectors()
+def tfidf(phrases, linear_window, linear_vectors, method) :
+	"""linear_window = la fenêtre des mots
+	linear_vectors = les vecteurs de contexte
+	"""
 	vectorizer = TfidfVectorizer(input=phrases)
 	vectors_tfidf = vectorizer.fit_transform(phrases)
 	vectors_tfidf = vectors_tfidf.todense()
 	vocabulary = vectorizer.get_feature_names()
-	
-	for i in range(len(phrases)) :
-		vector_n_i=[]
-		for mot in phrases[i].split() :
-			if mot.lower() in dict_mots_vec: #si le mot se trouve dans le fichier vecteurs
-				if mot in vocabulary:
-					idx = vocabulary.index(mot.lower())
-					weight = vectors_tfidf[i,idx]
-					vector = dict_mots_vec[mot.lower()]*weight
-					vector_n_i.append(vector)
-				else:
-					# si le mot n'est pas dans le vocabulaire
-					vec_zeros = np.zeros(100, float)
-					vector_n_i.append(vec_zeros)
-			else: #sinon
-				vec_zeros = np.zeros(100, float)
-				vector_n_i.append(vec_zeros)
+
+	for i in range(len(linear_window)) :
+		for j in range(len(linear_window[i])):
+			mot = linear_window[i][j]
+			if mot in vocabulary:
+				idx = vocabulary.index(mot.lower())
+				weight = vectors_tfidf[i,idx]
+				linear_vectors[i][j] = linear_vectors[i][j]*weight
+			else :
+				print("mot ", mot, "n'est pas trouvé")
+				linear_vectors[i][j] = np.zeros(100, float)
 		if method != None :
 			if method.lower() == 'somme':
-				vector_n_i=np.vstack(vector_n_i).sum(axis=0)
+				linear_vectors[i]=np.vstack(linear_vectors[i]).sum(axis=0)
 			if method.lower() == 'moyenne':
-				vector_n_i=np.mean(vector_n_i, axis=0)
+				linear_vectors[i]=np.mean(linear_vectors[i], axis=0)
 			if method.lower() == 'concat':
-				vector_n_i=np.concatenate(vector_n_i)
-		linear_vectors.append(vector_n_i)
+				linear_vectors[i]=np.concatenate(linear_vectors[i])
 	return linear_vectors
