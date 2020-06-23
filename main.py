@@ -27,7 +27,7 @@ for vals in product(*params_grid.values()):
 		flat=list(chain.from_iterable(nested))
 		param_combinations.append(flat)
 
-#print(len(param_combinations))
+
 ####################################################
 
 obligparser = argparse.ArgumentParser() #obligatory terminal based arguments
@@ -51,8 +51,18 @@ argo=obligparser.parse_args()
 
 all_results=[] #result list pour la fin
 
-for i in param_combinations:
-	args=elseparser.parse_args(i)
+set_selected=[]
+for i in range(len(param_combinations)):
+	j=rd.choice(param_combinations)
+	rep=True
+	while rep:
+		if j in set_selected:
+			j=rd.choice(param_combinations)
+		else:
+			set_selected.append(j)
+			rep=False
+
+	args=elseparser.parse_args(j)
 
 	print(vars(args))
 	conlls=["data/abattre/abattre-161.conll","data/aborder/aborder-221.conll","data/affecter/affecter-191.conll","data/comprendre/comprendre-150.conll","data/compter/compter-150.conll"]
@@ -326,7 +336,7 @@ for i in param_combinations:
 				tour1+=1
 				for cluster_id in classification1.clusters:
 					classification1.clusters[cluster_id].delete_examples()
-					#classification1.clusters[cluster_id].resave_initial_example()
+					classification1.clusters[cluster_id].resave_initial_example()
 				for exo in classification1.examples:
 					distances = []
 					for cluster_id in classification1.clusters:
