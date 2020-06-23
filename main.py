@@ -78,30 +78,25 @@ for i in param_combinations:
 		gold=golds[4]
 		tok_id=tok_ids[4]
 
+
+	########## GESTION EXCEPTION ##########
+
 	verbes = ["abattre", "aborder", "affecter", "comprendre", "compter"]
 	possible_fusion = ["somme", "moyenne", "concat"]
 	possible_clusters = ["constrained", "kmeans++", "constrained++"]
 	possible_formula = ["cosine", "euclidean", "cityblock"]
 	yn = ["y", "n"]
 
-	assert args.verbe in verbes, "verbe inconnu"
-	assert args.verbe in args.conll, "verbe ou fichier conll incorrect"
-	assert args.verbe in args.gold, "verbe ou fichier gold incorrect"
-	assert args.verbe in args.tok_ids, "verbe ou fichier tok_ids incorrect"
+	assert argo.verbe in verbes, "verbe inconnu"
+	assert argo.verbe in conll, "verbe ou fichier conll incorrect"
+	assert argo.verbe in gold, "verbe ou fichier gold incorrect"
+	assert argo.verbe in tok_id, "verbe ou fichier tok_ids incorrect"
 	if len(args.traits) == 2:
-	assert args.fusion_method in possible_fusion, "méthode de fusion incorrecte, choisissez parmi : somme, moyenne, concat"
+		assert args.fusion_method in possible_fusion, "méthode de fusion incorrecte, choisissez parmi : somme, moyenne, concat"
 	assert args.linear_method in possible_fusion, "méthode de fusion incorrecte, choisissez parmi : somme, moyenne, concat"
 	assert args.r in yn, "choisissez s'il faut faire la réduction ou non : --r y / n"
 	assert args.tfidf, "choisissez s'il fait faire la pondération tfidf : --tfidf y / n"
-	assert args.cluster_type in possible_clusters, "type de clustering incorrect, choisissez parmi : constrained, ++, constrained++"
-
-
-	with open(conll) as file:
-		file_conll = file.read()
-	with open(gold) as file2:
-		file_gold = file2.readlines()
-	with open(tok_id) as file3:
-		file_ids = file3.readlines()
+	assert argo.cluster_type in possible_clusters, "type de clustering incorrect, choisissez parmi : constrained, ++, constrained++"
 
 	if args.r == "y":
 		try:
@@ -118,6 +113,17 @@ for i in param_combinations:
 			assert args.r == "y", "pour fusionner les traits syntaxiques et linéaires il faut réduire la taille des vecteurs : --r y"
 			assert int(args.dim) <= 5, "la taille des traits syntaxiques et linéaires doit être inférieure ou égale à 5 : --r y --dim 5"
 
+
+
+	##########################
+
+
+	with open(conll) as file:
+		file_conll = file.read()
+	with open(gold) as file2:
+		file_gold = file2.readlines()
+	with open(tok_id) as file3:
+		file_ids = file3.readlines()
 
 
 
