@@ -13,8 +13,8 @@ from scipy.spatial.distance import cosine, euclidean, cityblock
 from itertools import product, chain
 
 ######CREER HYPERPARAMETRE COMBINATIONS########
-params_grid={'--dist_formula':["euclidean","cityblock","cosine"],'--r': ["y","n"],'--traits':["syntx","linear","syntx,linear"],
-'--n':['2','3','4'],'--fusion_method':["moyenne","concat","somme"],'--linear_method':["moyenne","concat","somme"],'--dim':['5'],'--tfidf':["y","n"]}
+params_grid={'--dist_formula':["euclidean","cosine"],'--r': ["y","n"],'--traits':['syntx','deux'],
+'--n':['2','3'],'--fusion_method':["moyenne","concat","somme"],'--linear_method':["moyenne","concat","somme"],'--dim':['5'],'--tfidf':["y","n"]}
 
 param_combinations=[]
 for vals in product(*params_grid.values()):
@@ -24,6 +24,8 @@ for vals in product(*params_grid.values()):
 		nested=list([list(a) for a in zip(params_grid, vals)])
 		flat=list(chain.from_iterable(nested))
 		param_combinations.append(flat)
+
+print(len(param_combinations))
 ####################################################
 
 obligparser = argparse.ArgumentParser() #obligatory terminal based arguments
@@ -34,7 +36,7 @@ obligparser.add_argument("cluster_type", choices=('kmeans++','constrained','cons
 
 elseparser.add_argument("--dist_formula", choices=('euclidean','cosine','cityblock'),help='Name a distance formula between cosine / euclidean/ cityblock (==manatthan)')
 elseparser.add_argument("--r", choices=('y','n'),help='Y ou N selon si on veut reduire les vecteurs, IMPORTANT: #si on applique pas la reduction, fusion_method doit etre moyenne ou concat')
-elseparser.add_argument("--traits",nargs='+',choices=('syntx','linear'),help="List des traits qu'on veut utiliser. [syntx,linear]")
+elseparser.add_argument("--traits",help="List des traits qu'on veut utiliser. [syntx,linear,deux]")
 elseparser.add_argument("--n",type=int, choices=(2,3,4),help='la taille de contexte pour les linears. Optionelle.')
 elseparser.add_argument("--fusion_method", choices=('moyenne','concat','somme'),help="La methode de fusion pour differents types des vecteurs de traits s'il y en a plusieurs")
 elseparser.add_argument("--linear_method", choices=('moyenne','concat','somme'), help='somme ou moyenne pour fusionner les traits de linear')
@@ -46,6 +48,7 @@ elseparser.add_argument("--tfidf",choices=('y','n'), help="la pondération des m
 argo=obligparser.parse_args()
 
 all_results=[] #result list pour la fin
+
 for i in param_combinations:
 	args=elseparser.parse_args(i)
 
@@ -135,42 +138,43 @@ for i in param_combinations:
 	# if args.tfidf.lower() == "y" :
 	# 	vectors_linear = tfidf(phrases, args.linear_method)
 
-	if len(args.traits)==1: #s'il y a pas les deux traits démandé mais qu'un seul
-		if args.traits[0].lower() =='syntx':
-			if args.r.lower()=='y': #si la reduction est demandé
-				#np.savetxt("{}.txt".format(folder+'/'+argo.verbe+"_vectors_syntx"), vectors_syntx, delimiter = "\t")
-				vectors_syntx=reduce_dimension(vectors_syntx,'syntx',argo.verbe,int(args.dim))
-			else: 
-				vectors_syntx=vectors_syntx
+	if args.traits.lower() =='syntx':
+		print("Only syntx traits")
+		if args.r.lower()=='y': #si la reduction est demandé
+			#np.savetxt("{}.txt".format(folder+'/'+argo.verbe+"_vectors_syntx"), vectors_syntx, delimiter = "\t")
+			vectors_syntx=reduce_dimension(vectors_syntx,'syntx',argo.verbe,int(args.dim))
+		else: 
+			vectors_syntx=vectors_syntx
+			
+		examples=Examples()
+		for i in range(len(vectors_syntx)):
+			gold=file_gold[i].strip('\n')
+			vector=Ovector(i,gold,None,vectors_syntx[i],None)
+			vector.set_vector(vectors_syntx[i])
+			examples.set_vector_to_matrix(vector)
 				
-			examples=Examples()
-			for i in range(len(vectors_syntx)):
-				gold=file_gold[i].strip('\n')
-				vector=Ovector(i,gold,None,vectors_syntx[i],None)
-				vector.set_vector(vectors_syntx[i])
-				examples.set_vector_to_matrix(vector)
-				
 
 
-		elif args.traits[0].lower() =='linear':
-			if args.r.lower()=='y':
-				#np.savetxt("{}.txt".format(folder+'/'+argo.verbe+"_linear_vectors"), vectors_linear, delimiter = "\t")
-				vectors_linear=reduce_dimension(vectors_linear,'linear',argo.verbe,int(args.dim))
-
-			else:
-				vectors_linear=vectors_linear
-
-			examples=Examples()
-			for i in range(len(vectors_linear)):
-				vector=vectors_linear[i]
-				gold=file_gold[i].strip('\n')
-				vector=Ovector(i,gold,None,None,vectors_linear[i])
-				vector.set_vector(vectors_linear[i])
-				examples.set_vector_to_matrix(vector)
+	elif args.traits.lower() =='linear':
+		print("Only linear traits")
+		if args.r.lower()=='y':
+			#np.savetxt("{}.txt".format(folder+'/'+argo.verbe+"_linear_vectors"), vectors_linear, delimiter = "\t")
+			vectors_linear=reduce_dimension(vectors_linear,'linear',argo.verbe,int(args.dim))
 		else:
-			print("Traits démandée n'existe pas!")		
+			vectors_linear=vectors_linear
 
-	else: #si on demande tous les deux traits linear et syntx
+	
+		examples=Examples()
+		for i in range(len(vectors_linear)):
+			vector=vectors_linear[i]
+			gold=file_gold[i].strip('\n')
+			vector=Ovector(i,gold,None,None,vectors_linear[i])
+			vector.set_vector(vectors_linear[i])
+			examples.set_vector_to_matrix(vector)
+
+
+	elif args.traits.lower() =='deux':#si on demande tous les deux traits linear et syntx
+		print('Linear et syntaxiques')
 		if args.r.lower()=='y': #si la reduction est demandé
 			#np.savetxt("{}.txt".format(folder+'/'+argo.verbe+"_vectors_syntx"), vectors_syntx, delimiter = "\t")
 			#np.savetxt("{}.txt".format(folder+'/'+argo.verbe+"_linear_vectors"), vectors_linear, delimiter = "\t")
