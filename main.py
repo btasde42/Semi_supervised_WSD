@@ -21,6 +21,7 @@ param_combinations=[]
 for vals in product(*params_grid.values()):
 	if vals[1].lower()=='n' and vals[4].lower()=='somme':
 		continue
+
 	else:
 		nested=list([list(a) for a in zip(params_grid, vals)])
 		flat=list(chain.from_iterable(nested))
@@ -260,7 +261,7 @@ for i in param_combinations:
 	if argo.cluster_type.lower() =='constrained++':
 		centers=[]
 		centers_gold=[]
-		i=rd.randint(0,len(matrix))
+		i=rd.randint(0,len(matrix)-1)
 		#print("I = ", i)
 		center= examples.get_Ovector_by_id(i) #on rajoute une premier vector aléatoire comme centre
 		centers_gold.append(examples.get_Ovector_by_id(i).gold)
@@ -321,14 +322,11 @@ for i in param_combinations:
 		tour1=0
 		
 		while True:
-			for cluster_id in classification1.clusters:
-				classification1.clusters[cluster_id].delete_examples()
-				#classification1.clusters[cluster_id].resave_initial_example()
 			if tour1 != E:
 				tour1+=1
 				for cluster_id in classification1.clusters:
 					classification1.clusters[cluster_id].delete_examples()
-					#classification1.clusters[cluster_id].resave_initial_example()
+					classification1.clusters[cluster_id].resave_initial_example()
 				for exo in classification1.examples:
 					distances = []
 					for cluster_id in classification1.clusters:
@@ -338,7 +336,10 @@ for i in param_combinations:
 							if args.dist_formula.lower() == 'cosine':
 								distances.append(cosine(exo.vector, classification1.clusters[cluster_id].center))
 							if args.dist_formula.lower() == 'euclidean':
-								distances.append(np.linalg.norm(exo.vector-classification1.clusters[cluster_id].center))
+								#print(exo.vector)
+								#print(classification1.clusters[cluster_id].center)
+								if classification1.clusters[cluster_id].center != 'nan' and exo.vector != 'nan':
+									distances.append(np.linalg.norm(exo.vector-classification1.clusters[cluster_id].center))
 							if args.dist_formula.lower() == 'cityblock':
 								distances.append(cityblock(exo.vector, classification1.clusters[cluster_id].center))
 					minimum_distance = np.argmin(distances)
