@@ -95,7 +95,7 @@ class Cluster:
 		#for example in self.examples:
 		#	print(type(example))
 		#	print(example.vector)
-		self.center = np.mean([ example.vector for example in self.examples], axis=0)
+		self.center = np.mean([ example.vector for example in self.examples if example!=None], axis=0)
 
 	
 	def delete_examples(self):
@@ -132,7 +132,7 @@ class KMeans:
 			if ifconstrained.lower()=='y':
 				self.clusters[self._ID]=Cluster(i.gold[0],i.vector,i,i)
 			else:
-				self.clusters[self._ID]=Cluster(i.gold[0],i.vector,i,None)
+				self.clusters[self._ID]=Cluster(i.gold[0],i.vector,i,i)
 			self._ID+=1
 		return self.clusters
 
@@ -223,14 +223,16 @@ def evaluate2(clusters):
 	rappel = 0.0
 	for c in clusters:
 		for e in clusters[c].examples:
-			classes[e.gold]+=1 #on calcule le nombre de gold pour chaque classes
+			if e != None:
+				classes[e.gold]+=1 #on calcule le nombre de gold pour chaque classes
 
 	for c in clusters:	
 		gold_cluster=clusters[c].id
 		vrai=0
 		for e in clusters[c].examples:
-			if e.gold==gold_cluster:
-				vrai+=1
+			if e != None:
+				if e.gold==gold_cluster:
+					vrai+=1
 
 
 		precision+=vrai/len(clusters[c].examples)

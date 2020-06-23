@@ -13,7 +13,7 @@ from scipy.spatial.distance import cosine, euclidean, cityblock
 from itertools import product, chain
 
 ######CREER HYPERPARAMETRE COMBINATIONS########
-params_grid={'--dist_formula':["euclidean","cosine"],'--r': ["y","n"],'--traits':['syntx','deux'],
+params_grid={'--dist_formula':["cosine","euclidean"],'--r': ["y","n"],'--traits':['syntx','deux'],
 '--n':['2','3'],'--fusion_method':["moyenne","concat","somme"],'--linear_method':["moyenne","concat","somme"],'--dim':['5'],'--tfidf':["y","n"]}
 
 param_combinations=[]
@@ -25,7 +25,7 @@ for vals in product(*params_grid.values()):
 		flat=list(chain.from_iterable(nested))
 		param_combinations.append(flat)
 
-print(len(param_combinations))
+#print(len(param_combinations))
 ####################################################
 
 obligparser = argparse.ArgumentParser() #obligatory terminal based arguments
@@ -52,6 +52,7 @@ all_results=[] #result list pour la fin
 for i in param_combinations:
 	args=elseparser.parse_args(i)
 
+	print(vars(args))
 	conlls=["data/abattre/abattre-161.conll","data/aborder/aborder-221.conll","data/affecter/affecter-191.conll","data/comprendre/comprendre-150.conll","data/compter/compter-150.conll"]
 	golds=["data/abattre/abattre-161.gold","data/aborder/aborder-221.gold","data/affecter/affecter-191.gold","data/comprendre/comprendre-150.gold","data/compter/compter-150.gold"]
 	tok_ids=["data/abattre/abattre-161.tok_ids","data/aborder/aborder-221.tok_ids","data/affecter/affecter-191.tok_ids","data/comprendre/comprendre-150.tok_ids","data/compter/compter-150.tok_ids"]
@@ -316,14 +317,17 @@ for i in param_combinations:
 		c_centers1=[]
 		for i in classification1.centers:
 			c_centers1.append(i.vector) #list de centres
-		#print(c_centers1)
 		tour1=0
+		
 		while True:
+			for cluster_id in classification1.clusters:
+				classification1.clusters[cluster_id].delete_examples()
+				classification1.clusters[cluster_id].resave_initial_example()
 			if tour1 != E:
 				tour1+=1
 				for cluster_id in classification1.clusters:
-						classification1.clusters[cluster_id].delete_examples()
-						classification1.clusters[cluster_id].resave_initial_example()
+					classification1.clusters[cluster_id].delete_examples()
+					classification1.clusters[cluster_id].resave_initial_example()
 				for exo in classification1.examples:
 					distances = []
 					for cluster_id in classification1.clusters:
@@ -331,37 +335,35 @@ for i in param_combinations:
 						if exo != classification1.clusters[cluster_id].initial_example:
 							if args.dist_formula.lower() == 'cosine':
 								distances.append(cosine(exo.vector, classification1.clusters[cluster_id].center))
-							elif args.dist_formula.lower() == 'euclidean':
+							if args.dist_formula.lower() == 'euclidean':
 								distances.append(euclidean(exo.vector, classification1.clusters[cluster_id].center))
-							else:
+							if args.dist_formula.lower() == 'cityblock':
 								distances.append(cityblock(exo.vector, classification1.clusters[cluster_id].center))
 					minimum_distance = np.argmin(distances)
 					classification1.clusters[minimum_distance].add_example_to_cluster(exo)
 				new_centers1=[]
-				for cluster_id in classification1.clusters:
-					classification1.clusters[cluster_id].recalculate_center()
-					new_centers1.append(classification1.clusters[cluster_id].center)
+				for cluster in classification1.clusters:
+					classification1.clusters[cluster].recalculate_center()
+					new_centers1.append(classification1.clusters[cluster].center)
 				#####SI LES CENTRES CHANGE OU PAS########
-				count=0
+				count1=0
 				for i in range(len(c_centers1)):
 					if np.all(c_centers1[i]==new_centers1[i]):
-						count+=1
-				if count == len(c_centers1):		
+						count1+=1
+				if count1 == len(c_centers1):		
 					break
 				else:
 					c_centers1 = new_centers1
 					new_centers1=[]
-			else:
-				break
 
 		print("RESULTS : ")
 		list_exemples=[]
 		list_golds=[]	
 		cluster_dict1={}
 		for i in classification1.clusters:
-			classif1=Counter([exo.gold for exo in classification1.clusters[i].examples])
+			classif1=Counter([exo.gold for exo in classification1.clusters[i].examples if exo !=None])
 			classification1.clusters[i].redefine_id(max(classif1,key=classif1.get)) #id de cluster == la classe le plus nombreaux
-			cluster_dict1["Cluster"+str(i)+"_gold: "+str(classification2.clusters[i].id)]=classif1
+			cluster_dict1["Cluster"+str(i)+"_gold: "+str(classification1.clusters[i].id)]=classif1
 			#print("CLUSTER ", i)
 			#print(len(classification1.clusters[i].examples))
 			#print(classification1.clusters[i].id)
@@ -422,7 +424,7 @@ for i in param_combinations:
 		print("RESULTS:")
 		cluster_dict1={}
 		for i in classification1.clusters:
-			classif1=Counter([exo.gold for exo in classification1.clusters[i].examples])
+			classif1=Counter([exo.gold for exo in classification1.clusters[i].examples if exo !=None])
 			classification1.clusters[i].redefine_id(max(classif1,key=classif1.get)) #id de cluster == la classe le plus nombreaux
 			cluster_dict1["Cluster"+str(i)+"_gold: "+str(classification1.clusters[i].id)]=classif1
 			#print("CLUSTER ", i)
