@@ -7,8 +7,9 @@ import argparse
 import numpy as np
 import random as rd
 import pandas as pd
-import matplotlib.pyplot as plt
+import matplotlib as plt
 import seaborn as sns
+import math
 from scipy.spatial.distance import cosine, euclidean, cityblock
 from itertools import product, chain
 
@@ -333,10 +334,11 @@ for i in param_combinations:
 					for cluster_id in classification1.clusters:
 						#print("INITIAL : ", classification1.clusters[cluster_id].initial_example)
 						if exo != classification1.clusters[cluster_id].initial_example:
+							#print(exo.vector)
 							if args.dist_formula.lower() == 'cosine':
 								distances.append(cosine(exo.vector, classification1.clusters[cluster_id].center))
 							if args.dist_formula.lower() == 'euclidean':
-								distances.append(euclidean(exo.vector, classification1.clusters[cluster_id].center))
+								distances.append(np.linalg.norm(exo.vector-classification1.clusters[cluster_id].center))
 							if args.dist_formula.lower() == 'cityblock':
 								distances.append(cityblock(exo.vector, classification1.clusters[cluster_id].center))
 					minimum_distance = np.argmin(distances)
