@@ -1,3 +1,4 @@
+import sys
 import datetime
 import csv
 from create_vectors import *
@@ -78,12 +79,21 @@ for i in param_combinations:
 		tok_id=tok_ids[4]
 
 	verbes = ["abattre", "aborder", "affecter", "comprendre", "compter"]
-	# on s'assure que les fichiers correspondent au verbe sélectionné
-	assert argo.verbe in verbes
-	assert argo.verbe in conll 
-	assert argo.verbe in gold
-	assert argo.verbe in tok_id
+	possible_fusion = ["somme", "moyenne", "concat"]
+	possible_clusters = ["constrained", "kmeans++", "constrained++"]
+	possible_formula = ["cosine", "euclidean", "cityblock"]
+	yn = ["y", "n"]
 
+	assert args.verbe in verbes, "verbe inconnu"
+	assert args.verbe in args.conll, "verbe ou fichier conll incorrect"
+	assert args.verbe in args.gold, "verbe ou fichier gold incorrect"
+	assert args.verbe in args.tok_ids, "verbe ou fichier tok_ids incorrect"
+	if len(args.traits) == 2:
+	assert args.fusion_method in possible_fusion, "méthode de fusion incorrecte, choisissez parmi : somme, moyenne, concat"
+	assert args.linear_method in possible_fusion, "méthode de fusion incorrecte, choisissez parmi : somme, moyenne, concat"
+	assert args.r in yn, "choisissez s'il faut faire la réduction ou non : --r y / n"
+	assert args.tfidf, "choisissez s'il fait faire la pondération tfidf : --tfidf y / n"
+	assert args.cluster_type in possible_clusters, "type de clustering incorrect, choisissez parmi : constrained, ++, constrained++"
 
 
 	with open(conll) as file:
@@ -92,6 +102,24 @@ for i in param_combinations:
 		file_gold = file2.readlines()
 	with open(tok_id) as file3:
 		file_ids = file3.readlines()
+
+	if args.r == "y":
+		try:
+			int(args.dim)
+		except ValueError :
+			print("la dimension doit être un int : --dim 5")
+			sys.exit()
+		except TypeError:
+			print("la dimension doit être un int : --dim 5")
+			sys.exit()
+
+	if len(args.traits) == 2:
+		if args.fusion_method == "somme" or args.fusion_method == "moyenne":
+			assert args.r == "y", "pour fusionner les traits syntaxiques et linéaires il faut réduire la taille des vecteurs : --r y"
+			assert int(args.dim) <= 5, "la taille des traits syntaxiques et linéaires doit être inférieure ou égale à 5 : --r y --dim 5"
+
+
+
 
 	vectors_syntx,num_senses,vectors_linear,phrases=read_conll(file_conll, file_gold, file_ids, args.n,inventaire,args.tfidf, args.linear_method)
 
@@ -117,6 +145,7 @@ for i in param_combinations:
 				vector.set_vector(vectors_syntx[i])
 				examples.set_vector_to_matrix(vector)
 				
+
 
 		elif args.traits[0].lower() =='linear':
 			if args.r.lower()=='y':
@@ -380,7 +409,6 @@ for i in param_combinations:
 
 			else:
 				break
-
 
 		print("RESULTS:")
 		cluster_dict1={}
