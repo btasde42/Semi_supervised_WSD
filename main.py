@@ -322,12 +322,12 @@ for i in param_combinations:
 		while True:
 			for cluster_id in classification1.clusters:
 				classification1.clusters[cluster_id].delete_examples()
-				classification1.clusters[cluster_id].resave_initial_example()
+				#classification1.clusters[cluster_id].resave_initial_example()
 			if tour1 != E:
 				tour1+=1
 				for cluster_id in classification1.clusters:
 					classification1.clusters[cluster_id].delete_examples()
-					classification1.clusters[cluster_id].resave_initial_example()
+					#classification1.clusters[cluster_id].resave_initial_example()
 				for exo in classification1.examples:
 					distances = []
 					for cluster_id in classification1.clusters:
