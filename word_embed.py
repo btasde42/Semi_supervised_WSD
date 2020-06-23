@@ -5,7 +5,8 @@ from io import StringIO
 from collections import defaultdict
 
 def create_linear_ids(lines_phrase,lemme,tok_ids,n):
-	keptwords=[l.split('\t')[2] for l in lines_phrase if l.split('\t')[3] in ['N','P','V','A','ADV']]
+	keptwords=[l.split('\t')[2] for l in lines_phrase if l.split('\t')[3].upper() in ['N','P','V','A','ADV']]
+	#print('keptwords:',keptwords)
 	#print('KEPTWORDS:',keptwords)
 	nb_nul_debut = 0
 	nb_nul_fin = 0
