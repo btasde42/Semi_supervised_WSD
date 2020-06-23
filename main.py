@@ -322,32 +322,24 @@ for i in param_combinations:
 		tour1=0
 		
 		while True:
+			for cluster_id in classification1.clusters:
+				classification1.clusters[cluster_id].delete_examples()
+				
 			if tour1 != E:
-				tour1+=1
 				for cluster_id in classification1.clusters:
 					classification1.clusters[cluster_id].delete_examples()
-					classification1.clusters[cluster_id].resave_initial_example()
-				for exo in classification1.examples:
-					distances = []
-					for cluster_id in classification1.clusters:
-						#print("INITIAL : ", classification1.clusters[cluster_id].initial_example)
-						if exo != classification1.clusters[cluster_id].initial_example:
-							#print(exo.vector)
-							if args.dist_formula.lower() == 'cosine':
-								distances.append(cosine(exo.vector, classification1.clusters[cluster_id].center))
-							if args.dist_formula.lower() == 'euclidean':
-								#print(exo.vector)
-								#print(classification1.clusters[cluster_id].center)
-								if classification1.clusters[cluster_id].center != 'nan' and exo.vector != 'nan':
-									distances.append(np.linalg.norm(exo.vector-classification1.clusters[cluster_id].center))
-							if args.dist_formula.lower() == 'cityblock':
-								distances.append(cityblock(exo.vector, classification1.clusters[cluster_id].center))
-					minimum_distance = np.argmin(distances)
-					classification1.clusters[minimum_distance].add_example_to_cluster(exo)
+				distance = classification1.distance_matrix(args.dist_formula)
+				for j in range(len(distance.T)): # on parcourt les exemples ; il faut savoir à quel id des exemples correspond j
+					min_value_index = np.argmin(distance.T[j]) # on trouve l'indice de la valeur min; c'est l'id du CLUSTER
+					exo = matrix[j] # exo à ajouter dans le cluster #min_value_index
+					if exo != classification1.clusters[min_value_index].initial_example :
+						classification1.clusters[min_value_index].add_example_to_cluster(exo) # j = quel id de l'exemple ?
 				new_centers1=[]
 				for cluster in classification1.clusters:
 					classification1.clusters[cluster].recalculate_center()
+
 					new_centers1.append(classification1.clusters[cluster].center)
+				
 				#####SI LES CENTRES CHANGE OU PAS########
 				count1=0
 				for i in range(len(c_centers1)):
