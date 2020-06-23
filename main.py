@@ -13,7 +13,7 @@ from scipy.spatial.distance import cosine, euclidean, cityblock
 from itertools import product, chain
 
 ######CREER HYPERPARAMETRE COMBINATIONS########
-params_grid={'--dist_formula':["cosine","euclidean"],'--r': ["y","n"],'--traits':['syntx','deux'],
+params_grid={'--dist_formula':["euclidean"],'--r': ["y","n"],'--traits':['syntx','deux'],
 '--n':['2','3'],'--fusion_method':["moyenne","concat","somme"],'--linear_method':["moyenne","concat","somme"],'--dim':['5'],'--tfidf':["y","n"]}
 
 param_combinations=[]
