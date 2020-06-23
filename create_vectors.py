@@ -44,6 +44,8 @@ def read_conll(conll, gold, tok_ids, n, inventaire, iftfidf,method=None):
 		list_keys.append(lemme+'_'+str(i)) #on met les nombres sur chaque lemme abattre de type abattre_1...abattre_160
 
 		####linear POUR L'EXEMPLE i###
+		#print(lemme)
+		#print(lines_phrase)
 		linear=create_linear_ids(lines_phrase,lemme,tok_ids,n) #creer fenetre de n
 		linear_window.append(linear)
 		vector_n_i=[]
