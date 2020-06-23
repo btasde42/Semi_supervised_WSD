@@ -14,7 +14,7 @@ from itertools import product, chain
 
 ######CREER HYPERPARAMETRE COMBINATIONS########
 params_grid={'--dist_formula':["euclidean","cityblock","cosine"],'--r': ["y","n"],'--traits':["syntx","linear","syntx,linear"],
-'--n':['2','3','4','5'],'--fusion_method':["moyenne","concat","somme"],'--linear_method':["moyenne","concat","somme"],'--dim':['10','11','12','13'],'--tfidf':["y","n"]}
+'--n':['2','3','4'],'--fusion_method':["moyenne","concat","somme"],'--linear_method':["moyenne","concat","somme"],'--dim':['5','6','7'],'--tfidf':["y","n"]}
 
 param_combinations=[]
 for vals in product(*params_grid.values()):
@@ -35,10 +35,10 @@ obligparser.add_argument("cluster_type", choices=('kmeans++','constrained','cons
 elseparser.add_argument("--dist_formula", choices=('euclidean','cosine','cityblock'),help='Name a distance formula between cosine / euclidean/ cityblock (==manatthan)')
 elseparser.add_argument("--r", choices=('y','n'),help='Y ou N selon si on veut reduire les vecteurs, IMPORTANT: #si on applique pas la reduction, fusion_method doit etre moyenne ou concat')
 elseparser.add_argument("--traits",nargs='+',choices=('syntx','linear'),help="List des traits qu'on veut utiliser. [syntx,linear]")
-elseparser.add_argument("--n",type=int, choices=(2,3,4,5),help='la taille de contexte pour les linears. Optionelle.')
+elseparser.add_argument("--n",type=int, choices=(2,3,4),help='la taille de contexte pour les linears. Optionelle.')
 elseparser.add_argument("--fusion_method", choices=('moyenne','concat','somme'),help="La methode de fusion pour differents types des vecteurs de traits s'il y en a plusieurs")
 elseparser.add_argument("--linear_method", choices=('moyenne','concat','somme'), help='somme ou moyenne pour fusionner les traits de linear')
-elseparser.add_argument("--dim",type=int,choices=(9,10,11,12),help="La taille de dimention reduit pour les vecteurs de verbe")
+elseparser.add_argument("--dim",type=int,choices=(5,6,7),help="La taille de dimention reduit pour les vecteurs de verbe")
 elseparser.add_argument("--tfidf",choices=('y','n'), help="la pondération des mots du contextes : y / n")
 
 #'--verbe':['abattre','aborder','affecter','comprendre','compter'],
@@ -435,7 +435,7 @@ for i in param_combinations:
 		print("Fscore: ",eval1)
 		
 		result_dict=vars(args)
-		result_dict.update({'Fscore':eval2})
+		result_dict.update({'Fscore':eval1})
 
 		all_results.append(result_dict)
 
