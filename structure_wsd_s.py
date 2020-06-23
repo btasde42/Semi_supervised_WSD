@@ -110,10 +110,9 @@ class Cluster:
 
 class KMeans:
 	_ID = 0
-	def __init__(self, examples, k, gold, contraints,distance_formula,centers):
+	def __init__(self, examples, k, gold,distance_formula,centers):
 		self.k=k
 		self.gold = gold # les noms des clusters=classes gold
-		self.conraints=contraints
 		self.distance_formula=distance_formula
 		self.examples=examples 
 		self.clusters = {}
