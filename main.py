@@ -444,7 +444,7 @@ for i in param_combinations:
 	os.makedirs(folder, exist_ok=True) #on cree un dossier pour chque essaie afin d'enregistrer les essaies
 	outfile="{}.csv".format(folder+'/'+ "ARGS_FSCORE_RESULTS") #ECRITURE DES RESULTATS
 	field_names=all_results[0].keys()
-	with open(outfile, 'w', newline='\t') as csvfile:
+	with open(outfile, 'w', newline='') as csvfile:
 		w = DictWriter(csvfile,fieldnames=field_names)
 		w.writeheader()
 		w.writerows(all_results)
