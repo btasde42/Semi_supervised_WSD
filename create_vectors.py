@@ -143,7 +143,7 @@ def read_inventaire (inventaire, vectors, sujet, objet,lemme):
 		for sense in senses_obj.keys():
 			if objet[key] in senses_obj[sense]:
 				vectors[key][6+sense+1] = 1 
-	print("MAX LEN VECTOR : ", 6+sense+1)
+	#print("MAX LEN VECTOR : ", 6+sense+1)
 	return vectors,num_senses
 
 def reduce_dimension(vectors,name_type,verbe,dimention):
@@ -163,8 +163,9 @@ def reduce_dimension(vectors,name_type,verbe,dimention):
 	# variance exmpliquée : pour voir l'importance de chaque composante
 	# combien d'information est gardé quand on réduit la taille des vecteurs
 	explained_variance = pca.explained_variance_ratio_
-	for elt in explained_variance:
-		print(round(elt,2))
+	#for elt in explained_variance:
+		#print(round(elt,2))
+	
 	#print("TRY REDUCED VECTOR : ", vectors[0])
 	return vectors
 
@@ -178,8 +179,8 @@ def fusion_traits(traits_syntaxique,traits_linear,method): #comment on va fusion
 			moyenne_linear=np.mean(traits_linear)
 			return np.array([moyenne_syntx,moyenne_linear]) #on cree un vecteur de taille (2,)
 		if method.lower() == 'moyenne2' :
-			print(type(traits_syntaxique))
-			print(np.mean(traits_syntaxique, traits_linear))
+			#print(type(traits_syntaxique))
+			#print(np.mean(traits_syntaxique, traits_linear))
 			return np.mean(np.array([traits_syntaxique, traits_linear]),axis=0) # un vecteur moyen de taille réduite (après la réduction avec ACP)
 		if method.lower() == 'concat':
 			return np.concatenate(traits_syntaxique,traits_linear)
@@ -199,8 +200,8 @@ def tfidf(phrases, linear_window, linear_vectors, method) :
 			if mot in vocabulary:
 				idx = vocabulary.index(mot.lower())
 				weight = vectors_tfidf[i,idx]
-				if mot == "avoir":
-					print("WEIGHT AVOIR ", weight)
+				#if mot == "avoir":
+					#print("WEIGHT AVOIR ", weight)
 				linear_vectors[i][j] = linear_vectors[i][j]*weight
 			else :
 				#print("mot ", mot, "n'est pas trouvé")
@@ -238,8 +239,8 @@ def tfidf2 (phrases, linear_window, linear_vectors, method):
 				#idx = vocabulary.index(mot.lower())
 				#weight = vectors_tfidf[i,idx]
 				weight = tfidf[mot]
-				if mot == "avoir":
-					print("WEIGHT AVOIR ", weight)
+				#if mot == "avoir":
+					#print("WEIGHT AVOIR ", weight)
 				linear_vectors[i][j] = linear_vectors[i][j]*weight
 			else :
 				#print("mot ", mot, "n'est pas trouvé")

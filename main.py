@@ -14,7 +14,7 @@ from itertools import product, chain
 
 ######CREER HYPERPARAMETRE COMBINATIONS########
 params_grid={'--dist_formula':["euclidean","cityblock","cosine"],'--r': ["y","n"],'--traits':["syntx","linear","syntx,linear"],
-'--n':['2','3','4'],'--fusion_method':["moyenne","concat","somme"],'--linear_method':["moyenne","concat","somme"],'--dim':['5','6','7'],'--tfidf':["y","n"]}
+'--n':['2','3','4'],'--fusion_method':["moyenne","concat","somme"],'--linear_method':["moyenne","concat","somme"],'--dim':['5'],'--tfidf':["y","n"]}
 
 param_combinations=[]
 for vals in product(*params_grid.values()):
@@ -173,7 +173,7 @@ for i in param_combinations:
 	else: #si on demande tous les deux traits linear et syntx
 		if args.r.lower()=='y': #si la reduction est demandé
 			#np.savetxt("{}.txt".format(folder+'/'+argo.verbe+"_vectors_syntx"), vectors_syntx, delimiter = "\t")
-			np.savetxt("{}.txt".format(folder+'/'+argo.verbe+"_linear_vectors"), vectors_linear, delimiter = "\t")
+			#np.savetxt("{}.txt".format(folder+'/'+argo.verbe+"_linear_vectors"), vectors_linear, delimiter = "\t")
 			vectors_linear=reduce_dimension(vectors_linear,'linear',argo.verbe,int(args.dim))
 			vectors_syntx=reduce_dimension(vectors_syntx,'syntx',argo.verbe,int(args.dim))
 			examples=Examples() 
@@ -201,7 +201,7 @@ for i in param_combinations:
 
 	rd.shuffle(matrix)
 	senses = Counter(int(line) for line in file_gold)
-	print("SENSES ", senses)
+	#print("SENSES ", senses)
 	N = len(senses.keys()) # le nb de clusters souhaité
 	GOLD = senses.keys() # les numéros des sens, les classes gold
 	#print(N)
@@ -243,8 +243,8 @@ for i in param_combinations:
 					break
 			centers.append(examples.get_Ovector_by_id(i))
 
-		print("CENTERS")
-		print([(c.gold,c.vector) for c in centers])
+		#print("CENTERS")
+		#print([(c.gold,c.vector) for c in centers])
 		classification1 = KMeans(matrix, N, GOLD, None, args.dist_formula ,centers)
 		classification1.create_empty_clustersPlus('n') #KMEANS ++
 
@@ -255,7 +255,7 @@ for i in param_combinations:
 		centers=[]
 		centers_gold=[]
 		i=rd.randint(0,len(matrix))
-		print("I = ", i)
+		#print("I = ", i)
 		center= examples.get_Ovector_by_id(i) #on rajoute une premier vector aléatoire comme centre
 		centers_gold.append(examples.get_Ovector_by_id(i).gold)
 		#print("FIRST CENTER = ", center.vector)
@@ -280,8 +280,8 @@ for i in param_combinations:
 			centers.append(examples.get_Ovector_by_id(j))
 			centers_gold.append(examples.get_Ovector_by_id(j).gold)
 			#print(centers_gold)
-		print("CENTERS")
-		print([(c.gold,c.vector) for c in centers])
+		#print("CENTERS")
+		#print([(c.gold,c.vector) for c in centers])
 
 		classification1 = KMeans(matrix, N, GOLD, None, args.dist_formula ,centers)
 		classification1.create_empty_clustersPlus('y') #KMEANS ++
@@ -358,11 +358,11 @@ for i in param_combinations:
 			classif1=Counter([exo.gold for exo in classification1.clusters[i].examples])
 			classification1.clusters[i].redefine_id(max(classif1,key=classif1.get)) #id de cluster == la classe le plus nombreaux
 			cluster_dict1["Cluster"+str(i)+"_gold: "+str(classification2.clusters[i].id)]=classif1
-			print("CLUSTER ", i)
-			print(len(classification1.clusters[i].examples))
-			print(classification1.clusters[i].id)
-			print(classif1)
-			print('\t')
+			#print("CLUSTER ", i)
+			#print(len(classification1.clusters[i].examples))
+			#print(classification1.clusters[i].id)
+			#print(classif1)
+			#print('\t')
 		print(cluster_dict1)
 
 		eval1=evaluate2(classification1.clusters)
@@ -421,11 +421,11 @@ for i in param_combinations:
 			classif1=Counter([exo.gold for exo in classification1.clusters[i].examples])
 			classification1.clusters[i].redefine_id(max(classif1,key=classif1.get)) #id de cluster == la classe le plus nombreaux
 			cluster_dict1["Cluster"+str(i)+"_gold: "+str(classification1.clusters[i].id)]=classif1
-			print("CLUSTER ", i)
-			print(len(classification1.clusters[i].examples))
-			print(classification1.clusters[i].id)
-			print(classif1)
-			print('\t')
+			#print("CLUSTER ", i)
+			#print(len(classification1.clusters[i].examples))
+			#print(classification1.clusters[i].id)
+			#print(classif1)
+			#print('\t')
 		print(cluster_dict1)
 
 		eval1=evaluate2(classification1.clusters)
@@ -435,10 +435,11 @@ for i in param_combinations:
 		
 		result_dict=vars(args)
 		result_dict.update({'Fscore':eval1})
-
+		print("Resultat enregistré au flux")
 		all_results.append(result_dict)
 
 	#####CREER FICHIER POUR ECRITURE DES RESULTATS#######
+	print("Ecriture des résultats")
 	folder="Results_"+argo.verbe+"_"+argo.cluster_type
 	os.makedirs(folder, exist_ok=True) #on cree un dossier pour chque essaie afin d'enregistrer les essaies
 	outfile="{}.csv".format(folder+'/'+ "ARGS_FSCORE_RESULTS") #ECRITURE DES RESULTATS
