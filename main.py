@@ -45,10 +45,9 @@ elseparser.add_argument("--tfidf",choices=('y','n'), help="la pondération des m
 #args=parser.parse_args()
 argo=obligparser.parse_args()
 
+all_results=[] #result list pour la fin
 for i in param_combinations:
 	args=elseparser.parse_args(i)
-	
-	all_results=[] #result list pour la fin
 
 	conlls=["data/abattre/abattre-161.conll","data/aborder/aborder-221.conll","data/affecter/affecter-191.conll","data/comprendre/comprendre-150.conll","data/compter/compter-150.conll"]
 	golds=["data/abattre/abattre-161.gold","data/aborder/aborder-221.gold","data/affecter/affecter-191.gold","data/comprendre/comprendre-150.gold","data/compter/compter-150.gold"]
@@ -445,7 +444,7 @@ for i in param_combinations:
 	outfile="{}.csv".format(folder+'/'+ "ARGS_FSCORE_RESULTS") #ECRITURE DES RESULTATS
 	field_names=all_results[0].keys()
 	with open(outfile, 'w', newline='') as csvfile:
-		w = DictWriter(csvfile,fieldnames=field_names)
+		w = csv.DictWriter(csvfile,fieldnames=field_names)
 		w.writeheader()
 		w.writerows(all_results)
 
